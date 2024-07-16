@@ -1,0 +1,13 @@
+{
+  "execMap": {
+    "ts": "ts-node"
+  },
+  "ignore": [
+    "node_modules",
+    "swaggerDocs"
+  ],
+  "watch": [
+    "src"
+  ],
+  "ext": "ts,js,json,yaml,yml"
+}

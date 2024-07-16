@@ -1,0 +1,351 @@
+{
+    "system.unauthorized": {
+        "code": 2001,
+        "message": "Unauthorized"
+    },
+    "system.internal.error": {
+        "code": 2002,
+        "message": "Internal server error"
+    },
+    "system.notfound": {
+        "code": 2003,
+        "message": "Not found error"
+    },
+    "token.invalid": {
+        "code": 2004,
+        "message": "Invalid authentication token"
+    },
+    "system.customMessage": {
+        "code": 2005,
+        "message": "Error"
+    },
+    "email.existed": {
+        "code": 3001,
+        "message": "Email đã được đăng ký"
+    },
+    "email.not.existed": {
+        "code": 3002,
+        "message": "Số điện thoại hoặc Mật khẩu không đúng"
+    },
+    "email.invalid": {
+        "code": 3003,
+        "message": "Nhập Email không hợp lệ"
+    },
+    "password.not.matched": {
+        "code": 3004,
+        "message": "Số điện thoại hoặc Mật khẩu không đúng"
+    },
+    "password.length.invalid": {
+        "code": 3005,
+        "message": "Mật khẩu phải có 8 ký tự"
+    },
+    "firstName.length.invalid": {
+        "code": 3006,
+        "message": "First name phải là ký tự"
+    },
+    "lastName.length.invalid": {
+        "code": 3007,
+        "message": "Last name phải là ký tự"
+    },
+    "password.confirmPassword.not.matched": {
+        "code": 3008,
+        "message": "Mật khẩu Không Khớp"
+    },
+    "account.inactive": {
+        "code": 3009,
+        "message": "Tài khoản chưa được xác minh"
+    },
+    "gender.required": {
+        "code": 3010,
+        "message": "Giới tính bắt buộc"
+    },
+    "dob.required": {
+        "code": 3011,
+        "message": "Ngày sinh bắt buộc"
+    },
+    "countryCode.required": {
+        "code": 3012,
+        "message": "Mã quốc gia bắt buộc"
+    },
+    "phoneNumber.required": {
+        "code": 3013,
+        "message": "Phone number is required"
+    },
+    "countryCode.invalid": {
+        "code": 3014,
+        "message": "Invalid country code format"
+    },
+    "phoneNumber.invalid": {
+        "code": 3015,
+        "message": "Invalid phone number format"
+    },
+    "verifyCode.expired": {
+        "code": 3016,
+        "message": "Verify code is expired"
+    },
+    "verifyCode.invalid": {
+        "code": 3017,
+        "message": "Invalid verify code"
+    },
+    "dob.invalid": {
+        "code": 3018,
+        "message": "Invalid birthday format"
+    },
+    "gender.invalid": {
+        "code": 3019,
+        "message": "Invalid gender format"
+    },
+    "token.existed": {
+        "code": 3020,
+        "message": "You have logged in already. Please logout on other device then try again"
+    },
+    "firstName.invalid": {
+        "code": 3021,
+        "message": "First name does not contain special characters except for space."
+    },
+    "lastName.invalid": {
+        "code": 3022,
+        "message": "Last name does not contain special characters except for space."
+    },
+    "name.invalid": {
+        "code": 3023,
+        "message": "Please enter required fields."
+    },
+    "role.required": {
+        "code": 3024,
+        "message": "Role is required."
+    },
+    "facebook.token.required": {
+        "code": 4001,
+        "message": "Access token is required"
+    },
+    "facebook.validate.error": {
+        "code": 4002,
+        "message": "Error validation from facebook"
+    },
+    "resetPassword.email.not.existed": {
+        "code": 5001,
+        "message": "This email does not exist"
+    },
+    "resetPassword.code.invalid": {
+        "code": 5002,
+        "message": "Your password reset link is not valid, or already used"
+    },
+    "resetPassword.password.confirmPassword.not.match": {
+        "code": 5003,
+        "message": "Password and confirm password does not match"
+    },
+    "changePassword.currentPassword.not.correct": {
+        "code": 5004,
+        "message": "Current password is not correct"
+    },
+    "resetPassword.wait.resend.forgotPassword": {
+        "code": 5005,
+        "message": "Please wait 180s to resend email reset password"
+    },
+    "resetPassword.cannot.resend.Password": {
+        "code": 5006,
+        "message": "Cannot resend password"
+    },
+    "setupPassword.code.invalid": {
+        "code": 5007,
+        "message": "Your password set up link is not valid, or already used"
+    },
+    "adminPanel.changeRole.invalid": {
+        "code": 6001,
+        "message": "Cannot change role of the last admin account"
+    },
+    "adminPanel.deleteUser.admin": {
+        "code": 6002,
+        "message": "Cannot delete admin account"
+    },
+    "adminPanel.login.invalid": {
+        "code": 6003,
+        "message": "Just admin or content can log in"
+    },
+    "adminPanel.inactive.invalid": {
+        "code": 6004,
+        "message": "Cannot change active status of the admin account"
+    },
+    "job.partySize.min.invalid": {
+        "code": 7001,
+        "message": "Minimum party size is 2."
+    },
+    "job.partySize.max.invalid": {
+        "code": 7002,
+        "message": "Maximum party size is 17."
+    },
+    "job.partySize.invalid": {
+        "code": 7003,
+        "message": "Party size must be an integer."
+    },
+    "job.luggage.invalid": {
+        "code": 7004,
+        "message": "Amount of luggage must be an integer."
+    },
+    "job.luggage.max.invalid": {
+        "code": 7005,
+        "message": "Maximum amount of luggage is 150."
+    },
+    "job.luggage.min.invalid": {
+        "code": 7006,
+        "message": "Minimum amount of luggage is 0."
+    },
+    "job.vanSize.min.invalid": {
+        "code": 7007,
+        "message": "Minimum van size is 2."
+    },
+    "job.vanSize.max.invalid": {
+        "code": 7008,
+        "message": "Maximum van size is 17."
+    },
+    "job.vanSize.invalid": {
+        "code": 7009,
+        "message": "Van size must be an integer."
+    },
+    "job.description.invalid": {
+        "code": 7010,
+        "message": "Maximum characters for Note are 500."
+    },
+    "job.create.promotion.invalid": {
+        "code": 7011,
+        "message": "Promotion is not exist."
+    },
+    "job.create.promotion.expired": {
+        "code": 7012,
+        "message": "Promotion is expired."
+    },
+    "job.assign.not.driver": {
+        "code": 7012,
+        "message": "You must assign a driver"
+    },
+    "job.date.invalid": {
+        "code": 7013,
+        "message": "Check in must be earlier than check outn"
+    },
+    "job.not.exist": {
+        "code": 7014,
+        "message": "Job is not exist"
+    },
+    "job.location.invalid": {
+        "code": 7015,
+        "message": "The location are the same"
+    },
+    "job.date.not.available": {
+        "code": 7016,
+        "message": "Customer had a offer with time is same"
+    },
+    "job.customer.not.exist": {
+        "code": 7017,
+        "message": "Customer is not exist"
+    },
+    "job.category.not.exist": {
+        "code": 7018,
+        "message": "Category is not exist"
+    },
+    "job.subCategory.not.exist": {
+        "code": 7019,
+        "message": "Sub category is not exist"
+    },
+    "job.subCategory.cannot.created": {
+        "code": 7020,
+        "message": "This category cannot created sub category"
+    },
+    "job.cannot.assign": {
+        "code": 7021,
+        "message": "Cannot assign this driver because this driver was assigned or have a job request to this job"
+    },
+    "job.subCategory.is.required": {
+        "code": 7022,
+        "message": "Sub category is required"
+    },
+    "job.driver.not.exist": {
+        "code": 7023,
+        "message": "Driver is not exist"
+    },
+    "job.category.is.required": {
+        "code": 7024,
+        "message": "Category is required"
+    },
+    "jobRequest.cannot.remove": {
+        "code": 8001,
+        "message": "Cannot delete accepted request job for more than 30 minutes"
+    },
+    "jobRequest.accepted": {
+        "code": 8002,
+        "message": "This job request has accepted"
+    },
+    "jobRequest.not.exist": {
+        "code": 8003,
+        "message": "Request job is not exist"
+    },
+    "jobRequest.description.invalid": {
+        "code": 8004,
+        "message": "Maximum characters for Note are 245"
+    },
+    "jobRequest.price.invalid": {
+        "code": 8005,
+        "message": "Price has to be between 1 and 6 charaters"
+    },
+    "jobRequest.cannot.change.pickupLocation": {
+        "code": 8006,
+        "message": "Job request was accepted. You cannot change pickup location."
+    },
+    "jobRequest.cannot.change.destination": {
+        "code": 8007,
+        "message": "Job request was accepted. You cannot change destination"
+    },
+    "jobRequest.cannot.accept": {
+        "code": 8008,
+        "message": "Cannot accept other job request when there are only 30 minutes left to go"
+    },
+    "vehicle.is.required": {
+        "code": 9001,
+        "message": "Vehicle is required"
+    },
+    "vehicle.not.exist": {
+        "code": 9002,
+        "message": "Vehicle is not exist"
+    },
+    "vehicle.cannot.delete": {
+        "code": 9003,
+        "message": "Cannot delete vehicle because it is in a job"
+    },
+    "stripe.customer.existed": {
+        "code": 15001,
+        "message": "Customer is existed"
+    },
+    "stripe.customer.notExisted": {
+        "code": 15002,
+        "message": "Customer is not existed"
+    },
+    "stripe.customer.notDefaultSource": {
+        "code": 15003,
+        "message": "Customer don't have default card to charge product"
+    },
+    "stripe.product.notExisted": {
+        "code": 15004,
+        "message": "Product is not existed"
+    },
+    "stripe.charge.failed": {
+        "code": 15005,
+        "message": "Charge for product failed"
+    },
+    "stripe.charge.notExisted": {
+        "code": 15006,
+        "message": "Charge for product is not existed"
+    },
+    "stripe.card.existed": {
+        "code": 15007,
+        "message": "Card for customer existed"
+    },
+    "stripe.card.notExisted": {
+        "code": 15008,
+        "message": "Card for customer is not existed"
+    },
+    "stripe.bank.country.invalid": {
+        "code": 15009,
+        "message": "Select country of bank account"
+    },
+    "notification.friend.request": "You have a friend request"
+}

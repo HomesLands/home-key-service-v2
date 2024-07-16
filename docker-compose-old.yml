@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  ts-node-docker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    volumes:
+      - ./src:/home/node/app/src
+      - ./nodemon.json:/home/node/app/nodemon.json
+    # environment:
+    #   NODE_ENV: production
+    #   PROTOCOL: http
+    #   PORT: '5502'
+    #   HOMELANDS_BASE_URL: http://homeland-2.ddns.net:8005/api
+    #   MONGO_DB_URI: "mongodb+srv://nghia:AA0iPFuUC4NoqCfn@cluster0.tcbra.mongodb.net/homekeytest"
+    #   DEFAULT_TENANT_CODE: "homekeytest"
+    #   MONGO_DB_URI_SMART: "mongodb+srv://nghia:AA0iPFuUC4NoqCfn@cluster0.tcbra.mongodb.net/homekeytest"
+    #   SMART_TENANT_CODE: "homekeytest"
+    #   MONGO_DB_URI_HOMEKEY: "mongodb+srv://nghia:AA0iPFuUC4NoqCfn@cluster0.tcbra.mongodb.net/homekeytest"
+    #   HOMEKEY_TENANT_CODE: "homekeytest"
+    #   DEFAULT_LANGUAGE: en
+    #   AVAILABLE_LANGUAGE_LIST: en,zh
+    BASE_API_URL: http://localhost:5502
+    ports:
+      - '5502:5502'
+    command: npm start

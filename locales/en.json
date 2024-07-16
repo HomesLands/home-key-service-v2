@@ -1,0 +1,673 @@
+{
+    "system.unauthorized": {
+        "code": 2001,
+        "message": "Unauthorized"
+    },
+    "system.internal.error": {
+        "code": 2002,
+        "message": "Internal server error"
+    },
+    "system.notfound": {
+        "code": 2003,
+        "message": "Not found error"
+    },
+    "token.invalid": {
+        "code": 2004,
+        "message": "Invalid authentication token"
+    },
+    "system.customMessage": {
+        "code": 2005,
+        "message": "Error"
+    },
+    "email.existed": {
+        "code": 3001,
+        "message": "Email đã được đăng ký"
+    },
+    "email.not.existed": {
+        "code": 3002,
+        "message": "Số điện thoại hoặc Mật khẩu không đúng"
+    },
+    "email.invalid": {
+        "code": 3003,
+        "message": "Nhập Email không hợp lệ"
+    },
+    "password.not.matched": {
+        "code": 3004,
+        "message": "Số điện thoại hoặc Mật khẩu không đúng"
+    },
+    "password.length.invalid": {
+        "code": 3005,
+        "message": "Mật khẩu phải có 8 ký tự"
+    },
+    "firstName.length.invalid": {
+        "code": 3006,
+        "message": "First name phải là ký tự"
+    },
+    "lastName.length.invalid": {
+        "code": 3007,
+        "message": "Last name phải là ký tự"
+    },
+    "password.confirmPassword.not.matched": {
+        "code": 3008,
+        "message": "Mật khẩu Không Khớp"
+    },
+    "account.inactive": {
+        "code": 3009,
+        "message": "Tài khoản chưa được xác minh"
+    },
+    "gender.required": {
+        "code": 3010,
+        "message": "Giới tính bắt buộc"
+    },
+    "dob.required": {
+        "code": 3011,
+        "message": "Ngày sinh bắt buộc"
+    },
+    "countryCode.required": {
+        "code": 3012,
+        "message": "Mã quốc gia bắt buộc"
+    },
+    "phoneNumber.required": {
+        "code": 3013,
+        "message": "Phone number is required"
+    },
+    "countryCode.invalid": {
+        "code": 3014,
+        "message": "Invalid country code format"
+    },
+    "phoneNumber.invalid": {
+        "code": 3015,
+        "message": "Invalid phone number format"
+    },
+    "verifyCode.expired": {
+        "code": 3016,
+        "message": "Verify code is expired"
+    },
+    "verifyCode.invalid": {
+        "code": 3017,
+        "message": "Invalid verify code"
+    },
+    "dob.invalid": {
+        "code": 3018,
+        "message": "Invalid birthday format"
+    },
+    "gender.invalid": {
+        "code": 3019,
+        "message": "Invalid gender format"
+    },
+    "token.existed": {
+        "code": 3020,
+        "message": "You have logged in already. Please logout on other device then try again"
+    },
+    "firstName.invalid": {
+        "code": 3021,
+        "message": "First name does not contain special characters except for space."
+    },
+    "lastName.invalid": {
+        "code": 3022,
+        "message": "Last name does not contain special characters except for space."
+    },
+    "name.invalid": {
+        "code": 3023,
+        "message": "Please enter required fields."
+    },
+    "role.required": {
+        "code": 3024,
+        "message": "Role is required."
+    },
+    "address.invalid": {
+        "code": 3025,
+        "message": "Address are the same"
+    },
+    "type.not.exist": {
+        "code": 3026,
+        "message": "User type is not exist"
+    },
+    "user.not.exist": {
+        "code": 3027,
+        "message": "User is not exist"
+    },
+    "user.not.driver": {
+        "code": 3028,
+        "message": "User is not a driver"
+    },
+    "access.invalid": {
+        "code": 3029,
+        "message": "Just user can access"
+    },
+    "isVerified": {
+        "code": 3030,
+        "message": "User is verified"
+    },
+    "age.under.18": {
+        "code": 3031,
+        "message": "People under 18 are not allowed to use this service"
+    },
+    "facebook.token.required": {
+        "code": 4001,
+        "message": "Access token is required"
+    },
+    "facebook.validate.error": {
+        "code": 4002,
+        "message": "Error validation from facebook"
+    },
+    "resetPassword.email.not.existed": {
+        "code": 5001,
+        "message": "This email does not exist"
+    },
+    "resetPassword.code.invalid": {
+        "code": 5002,
+        "message": "Your password reset link is not valid, or already used"
+    },
+    "resetPassword.password.confirmPassword.not.match": {
+        "code": 5003,
+        "message": "Password and confirm password does not match"
+    },
+    "changePassword.currentPassword.not.correct": {
+        "code": 5004,
+        "message": "Current password is not correct"
+    },
+    "resetPassword.wait.resend.forgotPassword": {
+        "code": 5005,
+        "message": "Please wait 90s to resend email reset password"
+    },
+    "resetPassword.cannot.resend.Password": {
+        "code": 5006,
+        "message": "Cannot resend password"
+    },
+    "setupPassword.code.invalid": {
+        "code": 5007,
+        "message": "Your password set up link is not valid, or already used"
+    },
+    "verify.code.is.exist": {
+        "code": 5008,
+        "message": "Verify code is exist"
+    },
+    "verify.code.not.exist": {
+        "code": 5009,
+        "message": "Verify code is not exist"
+    },
+    "resendOTP.wait.resend": {
+        "code": 5010,
+        "message": "Please wait 180s to resend OTP"
+    },
+    "adminPanel.changeRole.invalid": {
+        "code": 6001,
+        "message": "Cannot change role of the last admin account"
+    },
+    "adminPanel.deleteUser.admin": {
+        "code": 6002,
+        "message": "Cannot delete last admin account"
+    },
+    "adminPanel.login.invalid": {
+        "code": 6003,
+        "message": "Just admin or content can log in"
+    },
+    "adminPanel.inactive.invalid": {
+        "code": 6004,
+        "message": "Cannot change active status of the admin account"
+    },
+    "adminPanel.status.invalid": {
+        "code": 6005,
+        "message": "Invalid status"
+    },
+    "adminPanel.access.invalid": {
+        "code": 6006,
+        "message": "Just admin or content can access"
+    },
+    "job.partySize.min.invalid": {
+        "code": 7001,
+        "message": "Minimum party size is 2."
+    },
+    "job.partySize.max.invalid": {
+        "code": 7002,
+        "message": "Maximum party size is 17."
+    },
+    "job.partySize.invalid": {
+        "code": 7003,
+        "message": "Party size must be an integer and minimum is 2, maximum is 17."
+    },
+    "job.luggage.invalid": {
+        "code": 7004,
+        "message": "Amount of luggage must be a real number and minimum is 0 , maximum is 150."
+    },
+    "job.luggage.max.invalid": {
+        "code": 7005,
+        "message": "Maximum amount of luggage is 150."
+    },
+    "job.luggage.min.invalid": {
+        "code": 7006,
+        "message": "Minimum amount of luggage is 0."
+    },
+    "job.vanSize.min.invalid": {
+        "code": 7007,
+        "message": "Minimum van size is 2."
+    },
+    "job.vanSize.max.invalid": {
+        "code": 7008,
+        "message": "Maximum van size is 17."
+    },
+    "job.vanSize.invalid": {
+        "code": 7009,
+        "message": "Van size must be an integer and minimum is 2, maximum is 17."
+    },
+    "job.description.invalid": {
+        "code": 7010,
+        "message": "Maximum characters for Note are 500."
+    },
+    "job.create.promotion.invalid": {
+        "code": 7011,
+        "message": "Promotion is not exist."
+    },
+    "job.create.promotion.expired": {
+        "code": 7012,
+        "message": "Promotion is expired."
+    },
+    "job.assign.not.driver": {
+        "code": 7012,
+        "message": "You must assign a driver"
+    },
+    "job.date.invalid": {
+        "code": 7013,
+        "message": "Check in must be earlier than check outn"
+    },
+    "job.not.exist": {
+        "code": 7014,
+        "message": "Job is not exist"
+    },
+    "job.location.invalid": {
+        "code": 7015,
+        "message": "Location is invalid"
+    },
+    "job.existed": {
+        "code": 7016,
+        "message": "Customer has an offer already"
+    },
+    "job.customer.not.exist": {
+        "code": 7017,
+        "message": "Customer is not exist"
+    },
+    "job.category.not.exist": {
+        "code": 7018,
+        "message": "Category is not exist"
+    },
+    "job.subCategory.not.exist": {
+        "code": 7019,
+        "message": "Sub category is not exist"
+    },
+    "job.subCategory.cannot.created": {
+        "code": 7020,
+        "message": "This category cannot created sub category"
+    },
+    "job.subCategory.is.required": {
+        "code": 7021,
+        "message": "Sub category is required"
+    },
+    "job.driver.not.exist": {
+        "code": 7022,
+        "message": "Driver is not exist"
+    },
+    "job.category.is.required": {
+        "code": 7023,
+        "message": "Category is required"
+    },
+    "job.rated": {
+        "code": 7024,
+        "message": "Job has been rated"
+    },
+    "job.cannot.canceled": {
+        "code": 7025,
+        "message": "Job cannot be canceled"
+    },
+    "job.cannot.canceled.near.checkIn": {
+        "code": 7026,
+        "message": "Job cannot be canceld because there are only 30 minutes left to go"
+    },
+    "job.has.canceled.already": {
+        "code": 7027,
+        "message": "Job has canceled already"
+    },
+    "job.activity.not.exist": {
+        "code": 7028,
+        "message": "Activity is not exist"
+    },
+    "job.activity.invalid": {
+        "code": 7029,
+        "message": "Activity is invalid"
+    },
+    "job.has.completed.already": {
+        "code": 7030,
+        "message": "Job has completed already"
+    },
+    "job.cannot.edit": {
+        "code": 7031,
+        "message": "Job cannot be edited"
+    },
+    "job.checkIn.invalid": {
+        "code": 7032,
+        "message": "Check in time cannot be earlier than now"
+    },
+    "job.customer.required": {
+        "code": 7033,
+        "message": "Customer is required"
+    },
+    "job.location.same": {
+        "code": 7034,
+        "message": "Location is same"
+    },
+    "job.category.not.allowSubCategory": {
+        "code": 7034,
+        "message": "This category is not allow subcategory"
+    },
+    "job.subCategory.not.children": {
+        "code": 7035,
+        "message": "This subcategory is not children of this category"
+    },
+    "job.category.invalid": {
+        "code": 7036,
+        "message": "Category is invalid"
+    },
+    "job.arrayId.invalid": {
+        "code": 7037,
+        "message": "Job id must is an array"
+    },
+    "job.license.not.exist": {
+        "code": 7038,
+        "message": "License is not exist"
+    },
+    "job.rentalPeriod.invalid": {
+        "code": 7039,
+        "message": "Rental period is invalid"
+    },
+
+    "jobRequest.cannot.remove": {
+        "code": 8001,
+        "message": "Cannot delete accepted request job for more than 30 minutes"
+    },
+    "jobRequest.accepted": {
+        "code": 8002,
+        "message": "This job request has accepted"
+    },
+    "jobRequest.not.exist": {
+        "code": 8003,
+        "message": "Request job is not exist"
+    },
+    "jobRequest.description.invalid": {
+        "code": 8004,
+        "message": "Maximum characters for Note are 245"
+    },
+    "jobRequest.price.invalid": {
+        "code": 8005,
+        "message": "Price has to be between 1 and 6 charaters"
+    },
+    "jobRequest.cannot.change.pickupLocation": {
+        "code": 8006,
+        "message": "Job request was accepted. You cannot change pickup location."
+    },
+    "jobRequest.cannot.change.destination": {
+        "code": 8007,
+        "message": "Job request was accepted. You cannot change destination"
+    },
+    "jobRequest.cannot.accept": {
+        "code": 8008,
+        "message": "Cannot accept job request"
+    },
+    "jobRequest.cannot.create": {
+        "code": 8009,
+        "message": "Cannot create job request for this job because you had a job request for this job already"
+    },
+    "jobRequest.not.driver": {
+        "code": 8010,
+        "message": "You are not driver"
+    },
+    "jobRequest.has.assigned.already": {
+        "code": 8011,
+        "message": "Driver has been assigned already"
+    },
+
+    "vehicle.is.required": {
+        "code": 9001,
+        "message": "Vehicle is required"
+    },
+    "vehicle.not.exist": {
+        "code": 9002,
+        "message": "Vehicle is not exist"
+    },
+    "vehicle.cannot.delete": {
+        "code": 9003,
+        "message": "Cannot delete vehicle because it is in a job"
+    },
+    "vehicle.cannot.edit": {
+        "code": 9004,
+        "message": "Cannot edit vehicle because it is in a job"
+    },
+    "vehicle.image.maximum": {
+        "code": 9005,
+        "message": "Maximum image is 10"
+    },
+    "vehicle.rented": {
+        "code": 9006,
+        "message": "Vehicle is rented"
+    },
+    "vehicle.not.rented": {
+        "code": 9006,
+        "message": "Vehicle is not rented"
+    },
+    "vehicle.name.invalid": {
+        "code": 9007,
+        "message": "Vehicle name can only contain letter, number and space"
+    },
+    "vehicle.vanSize.min.invalid": {
+        "code": 9008,
+        "message": "Minimum van size is 2."
+    },
+    "vehicle.vanSize.max.invalid": {
+        "code": 9009,
+        "message": "Maximum van size is 17."
+    },
+    "vehicle.vanSize.invalid": {
+        "code": 9010,
+        "message": "Van size must be an integer."
+    },
+    "vehicle.licensePlate.invalid": {
+        "code": 9011,
+        "message": "License plate can only contain letter, number, space and -"
+    },
+    "vehicle.licensePlate.length.invalid": {
+        "code": 9012,
+        "message": "License plate has to be between 5 and 10 characters long"
+    },
+    "vehicle.name.length.invalid": {
+        "code": 9013,
+        "message": "Vehicle name phải là ký tự"
+    },
+    "vehicle.description.length.invalid": {
+        "code": 9014,
+        "message": "Description has to be between 1 and 500 characters long"
+    },
+    "vehicle.not.assigned": {
+        "code": 9015,
+        "message": "Vehicle is not assigned"
+    },
+    "rating.driverSkill.max": {
+        "code": 10001,
+        "message": "Maximum driver skill rating is 5"
+    },
+    "rating.car.max": {
+        "code": 10002,
+        "message": "Maximum car rating is 5"
+    },
+    "rating.charateristic.max": {
+        "code": 10003,
+        "message": "Maximum charateristic rating is 5"
+    },
+    "rating.pricing.max": {
+        "code": 10004,
+        "message": "Maximum pricing rating is 5"
+    },
+    "rating.driverSkill.min": {
+        "code": 10001,
+        "message": "Minimum driver skill rating is 1"
+    },
+    "rating.car.min": {
+        "code": 10002,
+        "message": "Minimum car rating is 1"
+    },
+    "rating.charateristic.min": {
+        "code": 10003,
+        "message": "Minimum charateristic rating is 1"
+    },
+    "rating.pricing.min": {
+        "code": 10004,
+        "message": "Minimum pricing rating is 1"
+    },
+    "rating.invalid": {
+        "code": 10009,
+        "message": "Number rating must be integer"
+    },
+    "driverApproval.company.not.exist": {
+        "code": 11001,
+        "message": "Company is not existed"
+    },
+    "driverApproval.verified": {
+        "code": 11002,
+        "message": "Driver Approval has verified already"
+    },
+    "driverApproval.companyLicense.not.exist": {
+        "code": 11003,
+        "message": "Driver license is not exist"
+    },
+    "driverApproval.license.exist": {
+        "code": 11004,
+        "message": "Driver license has existed already"
+    },
+    "driverApproval.license.not.exist": {
+        "code": 11005,
+        "message": "Driver license is not exist"
+    },
+    "driverApproval.license.was.expired": {
+        "code": 11006,
+        "message": "Driver license was expired"
+    },
+    "driverApproval.max.proof": {
+        "code": 11007,
+        "message": "Maximum proof is 4"
+    },
+    "blog.max.priority": {
+        "code": 12001,
+        "message": "Maximum priority is 10"
+    },
+    "blog.min.priority": {
+        "code": 12002,
+        "message": "Minimum priority is 1"
+    },
+    "blog.not.exist": {
+        "code": 12003,
+        "message": "Feature destination is not exist"
+    },
+    "promotion.title.required": {
+        "code": 13001,
+        "message": "Title is required"
+    },
+    "promotion.title.length.invalid": {
+        "code": 13002,
+        "message": "Title has to be between 1 and 245 characters long"
+    },
+    "promotion.discount.required": {
+        "code": 13003,
+        "message": "Discount is required"
+    },
+    "promotion.discount.min.invalid": {
+        "code": 13004,
+        "message": "Minimum discount is 0%"
+    },
+    "promotion.discount.max.invalid": {
+        "code": 13005,
+        "message": "Maximum discount is 100%"
+    },
+    "promotion.maximumPrice.required": {
+        "code": 13006,
+        "message": "Maximum price is required"
+    },
+    "promotion.maximumPrice.length.invalid": {
+        "code": 13007,
+        "message": "Maximum price has to be between 1 and 6 characters long"
+    },
+    "promotion.category.required": {
+        "code": 13008,
+        "message": "Category is required"
+    },
+    "promotion.priority.required": {
+        "code": 13009,
+        "message": "Priority is required"
+    },
+    "promotion.priority.min.invalid": {
+        "code": 13010,
+        "message": "Minimum priority is 1"
+    },
+    "promotion.priority.max.invalid": {
+        "code": 13011,
+        "message": "Maximum priority is 10"
+    },
+    "promotion.content.required": {
+        "code": 13012,
+        "message": "Content is required"
+    },
+    "promotion.content.invalid": {
+        "code": 13013,
+        "message": "Promotion content must contains at least 20 characters long"
+    },
+    "promotion.coupon.not.exist": {
+        "code": 13014,
+        "message": "Coupon not exist"
+    },
+    "promotion.type.invalid": {
+        "code": 13014,
+        "message": "Promotion type invalid"
+    },
+    "promotion.usageLimit.invalid": {
+        "code": 13014,
+        "message": "Usage limit invalid"
+    },
+    "promotion.usageLimit.min": {
+        "code": 13014,
+        "message": "Minimum usage limit is 1"
+    },
+    "stripe.customer.existed": {
+        "code": 15001,
+        "message": "Customer is existed"
+    },
+    "stripe.customer.notExisted": {
+        "code": 15002,
+        "message": "Customer is not existed"
+    },
+    "stripe.customer.notDefaultSource": {
+        "code": 15003,
+        "message": "Customer don't have default card to charge product"
+    },
+    "stripe.product.notExisted": {
+        "code": 15004,
+        "message": "Product is not existed"
+    },
+    "stripe.charge.failed": {
+        "code": 15005,
+        "message": "Charge for product failed"
+    },
+    "stripe.charge.notExisted": {
+        "code": 15006,
+        "message": "Charge for product is not existed"
+    },
+    "stripe.card.existed": {
+        "code": 15007,
+        "message": "Card for customer existed"
+    },
+    "stripe.card.notExisted": {
+        "code": 15008,
+        "message": "Card for customer is not existed"
+    },
+    "stripe.bank.country.invalid": {
+        "code": 15009,
+        "message": "Select country of bank account"
+    },
+    "notification.friend.request": "You have a friend request"
+}

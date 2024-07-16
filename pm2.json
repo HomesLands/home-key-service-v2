@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "ThaiBinhService",
+      "script": "nodemon",
+      "args": "build/server.js",
+      "watch": true
+    }
+  ]
+}

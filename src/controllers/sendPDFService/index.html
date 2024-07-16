@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chart Example</title>
+    <!-- Link đến thư viện Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS cho canvas chứa biểu đồ */
+        #myChart {
+            width: 400px;
+            height: 400px;
+        }
+
+        h1 {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Adu</h1>
+    <!-- Định vị canvas cho biểu đồ -->
+    <canvas id="myChart"></canvas>
+
+    <script>
+        // Tạo fake data
+        const labels = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+        ];
+        const data = {
+            labels: labels,
+            datasets: [
+                {
+                    label: "My Dataset",
+                    backgroundColor: "rgb(255, 99, 132)",
+                    borderColor: "rgb(255, 99, 132)",
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    // Tắt hiệu ứng animation
+                    tension: 0,
+                    borderWidth: 1,
+                    animation: false,
+                },
+            ],
+        };
+
+        // Khởi tạo biểu đồ bằng Chart.js
+        const ctx = document.getElementById("myChart").getContext("2d");
+        const myChart = new Chart(ctx, {
+            type: "line",
+            data: data,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            },
+        });
+    </script>
+</body>
+
+</html>
