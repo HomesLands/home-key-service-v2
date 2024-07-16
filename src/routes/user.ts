@@ -5,7 +5,6 @@ import AuthMiddleware from "../middlewares/auth";
 import RequestWithdrawsController from "../controllers/homeKey/requestWithdraws";
 import TransactionsController from "../controllers/homeKey/transactions";
 
-
 const userRoute = express.Router();
 
 /* -------------------------------------------------------------------------- */
@@ -27,6 +26,11 @@ userRoute
 // Get notification
 userRoute.route("/notification/:id").get(UserController.getNotificationUser);
 
+//Update notification status (read/unread)
+userRoute
+  .route("/updateNotification/:id")
+  .put(UserController.updateNotification);
+
 // Get owned motel room
 userRoute.get("/motelRoom/list", UserController.getMotelRoomList);
 
@@ -38,13 +42,13 @@ userRoute.get("/notification/list", UserController.getNotificationList);
 // recharge wallet
 userRoute.route("/recharge").post(UserController.rechargeWallet);
 //bank owner by id room
-userRoute.route("/bankOwnerRoom/:id").get(TransactionsController.getBankOwnerRoom);
+userRoute
+  .route("/bankOwnerRoom/:id")
+  .get(TransactionsController.getBankOwnerRoom);
 
 // note
 //bank
-userRoute
-  .route("/bank")
-  .get(UserController.getBankUser);
+userRoute.route("/bank").get(UserController.getBankUser);
 
 userRoute
   .route("/bank/:id")
@@ -62,11 +66,11 @@ userRoute
   .route("/requestWithdraws/list")
   .get(RequestWithdrawsController.getRequestWithdrawsUser);
 
-userRoute.route("/bankmastername").get(TransactionsController.getBankMasterName);
+userRoute
+  .route("/bankmastername")
+  .get(TransactionsController.getBankMasterName);
 
-
-
-  //-------------------------
+//-------------------------
 
 userRoute.use(AuthMiddleware.isMaster);
 userRoute.get("/admin/motelRoom/list", UserController.getMotelRoomListAdmin);
