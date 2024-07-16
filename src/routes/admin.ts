@@ -82,9 +82,12 @@ adminRoute.use(AuthMiddleware.isMaster);
 
 /* ------------------------------- PRIVATE API ------------------------------ */
 
+adminRoute.route("/permitUser")
+  .put(UserController.permitUser)
+
 adminRoute.route("/hostsPendingCensor")
-.get(UserController.getListHostPendingCensorByAdmin)
-.put(UserController.censorNewHostById);
+  .get(UserController.getListHostPendingCensorByAdmin)
+  .put(UserController.censorNewHostById);
 
 adminRoute
   .route("/resetPassword/:id")

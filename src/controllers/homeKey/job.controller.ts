@@ -109,6 +109,17 @@ export default class JobController {
       let { body: data } = req;
       console.log({ data });
 
+      // const userDataRes = await userModel.findOne({_id:  req["userId"]}).lean().exec();
+
+      // if(userDataRes) {
+      //   if(userDataRes.isLocked) {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       "Tài khoản của quý khách đã bị khóa tạm thời nên không thể tiến hành đặt cọc, vui lòng liên hệ admin!"
+      //     )
+      //   }
+      // }
+
       const roomData = await RoomController.getRoomById(data.roomId);
 
       if (roomData && roomData.error) {

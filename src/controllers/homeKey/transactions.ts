@@ -327,6 +327,17 @@ export default class TransactionsController {
       //type: deposit
       //status: waiting
 
+      const userDataRes = await userModel.findOne({_id:  req["userId"]}).lean().exec();
+
+      if(userDataRes) {
+        if(userDataRes.isLocked) {
+          return HttpResponse.returnBadRequestResponse(
+            res,
+            "Tài khoản của quý khách đã bị khóa tạm thời nên không thể tiến hành đặt cọc, vui lòng liên hệ admin!"
+          )
+        }
+      }
+
       const transactionDataRes = await TransactionsModel.findOne({
         room: formData.roomId,
         type: "deposit",
@@ -2066,15 +2077,19 @@ export default class TransactionsController {
 
         // nếu cọc thì xóa job, xóa order
         if (resDataS.type === "deposit") {
-          //note: tạm thời xóa đi job
-          // await jobModel.remove({ _id: orderData.job }).lean().exec();
+          //khóa user
+          await userModel.findOneAndUpdate(
+            {_id: resDataS.user},
+            {isLocked: true}
+          ).lean().exec();
+          
+          //xóa job tạm thời
           await jobModel.findOneAndUpdate(
             { _id: orderData.job },
             { isDeleted: true },
           ).lean().exec();
 
           //xóa job ra khỏi user
-
           let userUpdateData = {
             $pull: {
               jobs: orderData.job,

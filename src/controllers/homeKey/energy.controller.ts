@@ -5509,21 +5509,23 @@ export default class EnergyController {
       // const a  = moment().startOf("months");
       // const b = moment().month();
       
-      console.log(moment());
+      // console.log(moment());
 
-      const a  = moment("2024-07-08T17:00:00.000+00:00");
-      console.log({a});
+      // const a  = moment("2024-07-08T17:00:00.000+00:00");
+      // console.log({a});
 
       // {
-      //   const {
-      //     user: userModel,
-      //     order: orderModel,
-      //     job: jobModel,
-      //     room: roomModel,
-      //     totalKwh: totalKwhModel,
-      //     floor: floorModel,
-      //     motelRoom: motelRoomModel,
-      //   } = global.mongoModel;
+        const {
+          user: userModel,
+          order: orderModel,
+          job: jobModel,
+          room: roomModel,
+          totalKwh: totalKwhModel,
+          floor: floorModel,
+          motelRoom: motelRoomModel,
+        } = global.mongoModel;
+
+        
         
   
       //   // let data = job.attrs.data;

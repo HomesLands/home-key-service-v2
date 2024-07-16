@@ -164,6 +164,9 @@ export class User extends Basic {
   @prop()
   isCensorHost?: boolean;
 
+  @prop({default: false})
+  isLocked: boolean;
+
   @staticMethod
   static async validatePassword(
     inputPassword: string,

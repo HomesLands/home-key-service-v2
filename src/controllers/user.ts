@@ -2089,6 +2089,39 @@ export default class UserController {
       next(e);
     }
   }
+
+  static async permitUser(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) : Promise <any> {
+    try {
+      const {
+        user: userModel
+      } = global.mongoModel;
+      const { body: data } = req;
+      console.log("Dataa: ", data);
+
+      const userData = await userModel.findOne({_id: data.idUser}).lean().exec();
+
+      if(!userData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tài khoản người dùng không tồn tại!"
+        );
+      }
+
+      const userDataN = await userModel.findOneAndUpdate(
+        { _id: userData._id },
+        { isLocked: !userData.isLocked },
+        { new: true }
+      ).lean().exec();
+
+      return HttpResponse.returnSuccessResponse(res, userDataN);
+    } catch (error) {
+      next(error);
+    }
+  }
   // -------------
 
   /* -------------------------------------------------------------------------- */
