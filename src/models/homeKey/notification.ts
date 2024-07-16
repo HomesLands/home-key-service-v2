@@ -17,7 +17,14 @@ export class Notification extends Basic {
   @prop({ ref: User })
   user: Ref<User>;
 
+  @prop()
   isRead: boolean;
+
+  @prop()
+  url: string;
+
+  @prop()
+  type: string;
 }
 
 export const NotificationModel = (connection) => {
