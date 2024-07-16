@@ -9,8 +9,8 @@ import TwillioService from "../services/twilio";
 import HttpResponse from "../services/response";
 import MotelRoomController from "../controllers/homeKey/motelRoom";
 import VnpayService from "../services/vnpay";
-import EnergyController from './homeKey/energy.controller';
-import axios from 'axios';
+import EnergyController from "./homeKey/energy.controller";
+import axios from "axios";
 
 export default class UserController {
   /**
@@ -243,8 +243,8 @@ export default class UserController {
               isVerified === "all"
                 ? {}
                 : isVerified === "true"
-                  ? { isVerified: true }
-                  : { isVerified: false },
+                ? { isVerified: true }
+                : { isVerified: false },
               { role: { $nin: ["master", "content"] } },
             ],
           },
@@ -483,7 +483,6 @@ export default class UserController {
    *          - auth: []
    */
 
-
   //note
   static async updateProfile(
     req: Request,
@@ -498,7 +497,6 @@ export default class UserController {
       const imageService = new ImageService("any");
       const { body: data } = req;
       console.log(data);
-
 
       // Process form data
       await imageService.processFormData(req, res);
@@ -556,7 +554,6 @@ export default class UserController {
           );
         }
 
-
         const currentUser = await userModel
           .findOne({
             _id: data._id,
@@ -566,18 +563,15 @@ export default class UserController {
           .exec();
 
         if (!currentUser.idDevice) {
-
-
-
-
-          await userModel.updateOne({
-            _id: data._id,
-            isDeleted: false,
-          },
+          await userModel.updateOne(
             {
-              $set: { idDevice: null }
+              _id: data._id,
+              isDeleted: false,
+            },
+            {
+              $set: { idDevice: null },
             }
-          )
+          );
 
           // Update normal data
           resData = await userModel
@@ -628,7 +622,6 @@ export default class UserController {
             .populate("avatar identityCards backId frontId")
             .lean();
         }
-
       } else {
         // Update normal data
 
@@ -641,14 +634,15 @@ export default class UserController {
           .exec();
 
         if (!currentUser.idDevice) {
-          await userModel.updateOne({
-            _id: data._id,
-            isDeleted: false,
-          },
+          await userModel.updateOne(
             {
-              $set: { idDevice: null }
+              _id: data._id,
+              isDeleted: false,
+            },
+            {
+              $set: { idDevice: null },
             }
-          )
+          );
 
           resData = await userModel
             .findOneAndUpdate(
@@ -1115,6 +1109,30 @@ export default class UserController {
     }
   }
 
+  static async updateNotification(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      // Init user model
+      const { notification: notificationModel } = global.mongoModel;
+      //get id from url
+      const id = req.params.id;
+
+      let resData = await notificationModel.findOneAndUpdate(
+        { _id: id },
+        { isRead: true },
+        { new: true }
+      );
+
+      return HttpResponse.returnSuccessResponse(res, resData);
+    } catch (e) {
+      // Pass error to the next middleware
+      next(e);
+    }
+  }
+
   static async getNotificationList(
     req: Request,
     res: Response,
@@ -1504,8 +1522,7 @@ export default class UserController {
     return normalizeError(validateResults);
   }
 
-
-  // note 
+  // note
   static async getBankUser(
     req: Request,
     res: Response,
@@ -1574,8 +1591,6 @@ export default class UserController {
     }
   }
 
-
-
   static async getHostList(
     req: Request,
     res: Response,
@@ -1589,12 +1604,11 @@ export default class UserController {
         room: roomModel,
         address: addressModel,
         user: userModel,
-        electrics: ElectricsModel // Import ElectricsModel
+        electrics: ElectricsModel, // Import ElectricsModel
       } = global.mongoModel;
 
       let jsonMotel = {};
       let userDataWithRevenue = [];
-
 
       let sortBy: string = req.query.sortBy
         ? req.query.sortBy.toString()
@@ -1649,8 +1663,8 @@ export default class UserController {
               isVerified === "all"
                 ? {}
                 : isVerified === "true"
-                  ? { isVerified: true }
-                  : { isVerified: false },
+                ? { isVerified: true }
+                : { isVerified: false },
               // { role: { $nin: ["master", "content"] } },
               { role: { $in: ["host", "content"] } },
             ],
@@ -1790,10 +1804,13 @@ export default class UserController {
       // }
 
       console.log(userData);
-      if(userData) {
-        if(userData.totalRow > 0) {
-          for(let i = 0; i < userData.totalRow; i++) {
-            let motelDatas = await motelRoomModel.find({owner: userData.data[i]._id}).lean().exec();
+      if (userData) {
+        if (userData.totalRow > 0) {
+          for (let i = 0; i < userData.totalRow; i++) {
+            let motelDatas = await motelRoomModel
+              .find({ owner: userData.data[i]._id })
+              .lean()
+              .exec();
             userData.data[i].numberBuilding = motelDatas.length;
           }
         }
@@ -1818,12 +1835,11 @@ export default class UserController {
         room: roomModel,
         address: addressModel,
         user: userModel,
-        electrics: ElectricsModel // Import ElectricsModel
+        electrics: ElectricsModel, // Import ElectricsModel
       } = global.mongoModel;
 
       let jsonMotel = {};
       let userDataWithRevenue = [];
-
 
       let sortBy: string = req.query.sortBy
         ? req.query.sortBy.toString()
@@ -1878,8 +1894,8 @@ export default class UserController {
               isVerified === "all"
                 ? {}
                 : isVerified === "true"
-                  ? { isVerified: true }
-                  : { isVerified: false },
+                ? { isVerified: true }
+                : { isVerified: false },
               // { role: { $nin: ["master", "content"] } },
               { role: { $in: ["host", "content"] } },
             ],
@@ -2021,10 +2037,13 @@ export default class UserController {
       // }
 
       console.log(userData);
-      if(userData) {
-        if(userData.totalRow > 0) {
-          for(let i = 0; i < userData.totalRow; i++) {
-            let motelDatas = await motelRoomModel.find({owner: userData.data[i]._id}).lean().exec();
+      if (userData) {
+        if (userData.totalRow > 0) {
+          for (let i = 0; i < userData.totalRow; i++) {
+            let motelDatas = await motelRoomModel
+              .find({ owner: userData.data[i]._id })
+              .lean()
+              .exec();
             userData.data[i].numberBuilding = motelDatas.length;
           }
         }
@@ -2043,48 +2062,44 @@ export default class UserController {
   ): Promise<any> {
     try {
       // Init user model`
-      const {
-        user: userModel,
-      } = global.mongoModel;
-      
+      const { user: userModel } = global.mongoModel;
+
       // const id = req.params.id;
 
       let { body: data } = req;
 
-      console.log({data});
+      console.log({ data });
 
-      if(!data) {
-        return HttpResponse.returnBadRequestResponse(
-          res,
-          "Không có dữ liệu"
-        )
+      if (!data) {
+        return HttpResponse.returnBadRequestResponse(res, "Không có dữ liệu");
       }
 
-      const userData = await userModel.findOne({_id: data.idUser}).lean().exec();
+      const userData = await userModel
+        .findOne({ _id: data.idUser })
+        .lean()
+        .exec();
 
-      if(!userData) {
+      if (!userData) {
         return HttpResponse.returnBadRequestResponse(
           res,
           "Người dùng không tồn tại"
-        )
+        );
       }
 
-      if(data.status === true) {
+      if (data.status === true) {
         const motelDataUpdate = await userModel.findOneAndUpdate(
-          {_id: data.idUser},
+          { _id: data.idUser },
           {
             isCensorHost: true,
           },
-          {new: true}
+          { new: true }
         );
         return HttpResponse.returnSuccessResponse(res, motelDataUpdate);
-      } else if(data.status === false) {
-        const motelDataUpdate = await userModel.remove(
-          {_id: data.idUser},
-        );
+      } else if (data.status === false) {
+        const motelDataUpdate = await userModel.remove({ _id: data.idUser });
         return HttpResponse.returnSuccessResponse(res, motelDataUpdate);
       }
-      return HttpResponse.returnSuccessResponse(res, 'success');
+      return HttpResponse.returnSuccessResponse(res, "success");
     } catch (e) {
       next(e);
     }
@@ -2094,28 +2109,32 @@ export default class UserController {
     req: Request,
     res: Response,
     next: NextFunction
-  ) : Promise <any> {
+  ): Promise<any> {
     try {
-      const {
-        user: userModel
-      } = global.mongoModel;
+      const { user: userModel } = global.mongoModel;
       const { body: data } = req;
       console.log("Dataa: ", data);
 
-      const userData = await userModel.findOne({_id: data.idUser}).lean().exec();
+      const userData = await userModel
+        .findOne({ _id: data.idUser })
+        .lean()
+        .exec();
 
-      if(!userData) {
+      if (!userData) {
         return HttpResponse.returnBadRequestResponse(
           res,
           "Tài khoản người dùng không tồn tại!"
         );
       }
 
-      const userDataN = await userModel.findOneAndUpdate(
-        { _id: userData._id },
-        { isLocked: !userData.isLocked },
-        { new: true }
-      ).lean().exec();
+      const userDataN = await userModel
+        .findOneAndUpdate(
+          { _id: userData._id },
+          { isLocked: !userData.isLocked },
+          { new: true }
+        )
+        .lean()
+        .exec();
 
       return HttpResponse.returnSuccessResponse(res, userDataN);
     } catch (error) {
