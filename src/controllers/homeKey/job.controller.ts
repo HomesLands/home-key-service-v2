@@ -632,6 +632,7 @@ export default class JobController {
         job: jobModel,
         user: userModel,
         order: orderModel,
+        payDepositList: payDepositListModel,
       } = global.mongoModel;
 
       const jobData = await JobController.getJob(req.params.id, {
@@ -646,16 +647,63 @@ export default class JobController {
       }
 
       await NotificationController.createNotification({
-        title: "Xác nhận hủy cọc",
-        content: "Bạn đã hủy cọc phòng thành công",
+        title: "Xác nhận hủy hợp đồng",
+        content: `Bạn đã hủy hợp đồng phòng ${jobData.room.name} thuộc dãy
+        ${jobData.motelRoom.name} thành công. Vì hủy hợp đồng khi chưa hết
+        thời hạn nên bạn không thể nhận lại được các khoản đã cọc.`,
+        type: "cancelDepositByUser",
         user: req["userId"],
         isRead: false,
+        url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
       });
 
-      // let resData = await jobModel
-      //   .remove({ _id: req.params.id })
-      //   .lean()
-      //   .exec();
+      const listOrder = jobData.orders;
+      if(listOrder.length === 1) {
+        if(listOrder[0].isCompleted === true) {
+          await payDepositListModel.create({
+            room: jobData.room._id,
+            user: jobData.user._id,
+            job: jobData._id,
+            ordersNoPay: [],
+            type: "noPayDeposit",
+            reasonNoPay: "unknown",
+            amount: jobData.deposit,
+          });
+        }
+      } else if(listOrder.length === 2) {
+        if(listOrder[1].isCompleted === true) {
+          await payDepositListModel.create({
+            room: jobData.room._id,
+            user: jobData.user._id,
+            job: jobData._id,
+            ordersNoPay: [],
+            type: "noPayDeposit",
+            reasonNoPay: "unknown",
+            amount: jobData.deposit + jobData.afterCheckInCost,
+          });
+        } else {
+          await payDepositListModel.create({
+            room: jobData.room._id,
+            user: jobData.user._id,
+            job: jobData._id,
+            ordersNoPay: [],
+            type: "noPayDeposit",
+            reasonNoPay: "unknown",
+            amount: jobData.deposit,
+          });
+        }
+      } else {
+        await payDepositListModel.create({
+          room: jobData.room._id,
+          user: jobData.user._id,
+          job: jobData._id,
+          ordersNoPay: [],
+          type: "noPayDeposit",
+          reasonNoPay: "unknown",
+          amount: jobData.deposit + jobData.afterCheckInCost,
+        });
+      }
+
       let resData = await jobModel
         .findOneAndUpdate({ _id: req.params.id }, { isDeleted: true })
         .lean()
@@ -1202,13 +1250,26 @@ export default class JobController {
         amount: resData.afterCheckInCost,
         type: "afterCheckInCost",
         // expireTime: moment(resData.checkInTime).add(7, "days").endOf("day").toDate(),
-        expireTime: moment()
-          .add(7, "days")
-          .endOf("day")
-          .toDate(),
+        expireTime: moment().add(7, "days").endOf("day").toDate(),
       });
 
-      console.log("NGÀY TẠOOOO", moment());
+      console.log("XXXX room", resData.room.name);
+      console.log("XXXX orderData", orderData);
+      console.log("XXXX motelRoom", resData.motelRoom.name);
+      console.log("XXXX orderData", moment(orderData.expireTime).format("DD-MM-YYYY"));
+      console.log("XXXX user", resData.user._id);
+      console.log("XXXX resData", resData._id);
+
+      await NotificationController.createNotification({
+        title: "Thông báo thanh toán khi nhận phòng",
+        content: `Quý khách đã kích hoạt hợp đồng thành công cho phòng ${resData.room.name} thuộc 
+        tòa nhà ${resData.motelRoom.name} .Vui lòng thực hiện thanh toán khi nhận phòng, 
+        hạn cuối tới ngày ${moment(orderData.expireTime).format("DD-MM-YYYY")}.`,
+        user: resData.user._id,
+        isRead: false,
+        type: "activeJob",
+        url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`
+      });
 
       resData = await jobModel
         .findOneAndUpdate(
@@ -1224,6 +1285,8 @@ export default class JobController {
         .populate("rooms")
         .lean()
         .exec();
+
+      console.log("TTTTT resData", resData);
 
       let floorData = await floorModel
         .findOne({ rooms: resData.room._id })
@@ -1264,6 +1327,8 @@ export default class JobController {
       await motelRoomModel
         .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
         .exec();
+
+      
 
       await global.agendaInstance.agenda.schedule(
         moment()
@@ -2928,7 +2993,6 @@ export default class JobController {
   ): Promise<any> {
     try {
       // Init models
-
       const idRoom = req.params.id;
       const {
         room: roomModel,
@@ -2937,13 +3001,13 @@ export default class JobController {
         job: jobModel,
         user: userModel,
         order: orderModel,
+        payDepositList: payDepositListModel,
       } = global.mongoModel;
 
       const roomInfor = await roomModel
         .findOne({ _id: idRoom })
         .lean()
         .exec();
-      console.log("roomInfor", roomInfor);
       const idUserRented = roomInfor.rentedBy;
 
       const jobInfor = await jobModel.findOne({
@@ -2964,14 +3028,84 @@ export default class JobController {
           );
         }
 
+        //for host
+        const hostData = await userModel.findOne({
+          _id: jobData.motelRoom.owner
+        }).lean().exec();
+
         await NotificationController.createNotification({
-          title: "Xác nhận hủy cọc",
-          content: "Bạn đã hủy cọc phòng thành công",
-          user: idUserRented,
+          title: "Xác nhận hủy hợp đồng",
+          content: `Bạn đã hủy hợp đồng phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} thành công`,
+
+          type: "cancelContractByHost",
+          user: hostData._id,
           isRead: false,
+          url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${jobData.room._id}`
         });
 
-        console.log("jobInfor xbaab: ", jobInfor);
+        //for user
+        await NotificationController.createNotification({
+          title: "Thông báo hủy hợp đồng",
+          content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách
+          đã bị hủy bởi chủ tòa nhà. Nếu có thắc mắc nào vui lòng liên hệ chủ tòa.
+          Nếu có khiếu nại nào vui lòng liên hệ quản trị viên.`,
+
+          type: "cancelContractByHost",
+          user: idUserRented,
+          isRead: false,
+          url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${jobData.room._id}`
+        });
+
+
+        const listOrder = jobData.orders;
+        if(listOrder.length === 1) {
+          if(listOrder[0].isCompleted === true) {
+            await payDepositListModel.create({
+              room: jobData.room._id,
+              user: jobData.user._id,
+              job: jobData._id,
+              ordersNoPay: [],
+              type: "noPayDeposit",
+              reasonNoPay: "unknown",
+              amount: jobData.deposit,
+            });
+          }
+        } else if(listOrder.length === 2) {
+          if(listOrder[1].isCompleted === true) {
+            await payDepositListModel.create({
+              room: jobData.room._id,
+              user: jobData.user._id,
+              job: jobData._id,
+              ordersNoPay: [],
+              type: "noPayDeposit",
+              reasonNoPay: "unknown",
+              amount: jobData.deposit + jobData.afterCheckInCost,
+            });
+          } else {
+            await payDepositListModel.create({
+              room: jobData.room._id,
+              user: jobData.user._id,
+              job: jobData._id,
+              ordersNoPay: [],
+              type: "noPayDeposit",
+              reasonNoPay: "unknown",
+              amount: jobData.deposit,
+            });
+          }
+        } else {
+          await payDepositListModel.create({
+            room: jobData.room._id,
+            user: jobData.user._id,
+            job: jobData._id,
+            ordersNoPay: [],
+            type: "noPayDeposit",
+            reasonNoPay: "unknown",
+            amount: jobData.deposit + jobData.afterCheckInCost,
+          });
+        }
+
+
+        
         let resData = await jobModel
           .findOneAndUpdate({ _id: jobInfor._id }, { isDeleted: true })
           .lean()

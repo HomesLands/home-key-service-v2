@@ -1080,7 +1080,7 @@ export default class UserController {
     const UserID = req.params.id;
     const { notification: notificationModel } = global.mongoModel;
 
-    const resData = await notificationModel.find({ user: UserID });
+    const resData = await notificationModel.find({ user: UserID }).sort({createdAt: -1});
 
     if (!resData) {
       return HttpResponse.returnBadRequestResponse(
