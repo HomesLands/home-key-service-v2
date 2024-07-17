@@ -583,9 +583,12 @@ export default (agenda) => {
 
           await NotificationController.createNotification({
             title: "Thông báo hủy cọc",
-            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} của quý khách đã bị hủy cọc vì không kích hoạt đúng thời hạn.`,
-            user: jobData.user,
+            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} đặt cọc ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
+            của quý khách đã bị hủy cọc vì không kích hoạt đúng thời hạn.`,
+            user: jobData.user._id,
             isRead: false,
+            type: "cancelContract",
+            url: '',
           });
 
           if(userData.email) {
@@ -883,9 +886,16 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content:`Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month() + 1}/${checkOutTime.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 03/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành thanh toán, quý khách sẽ không được hoàn trả tiền cọc.`,
-                user: jobData.user,
+
+                content:`Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month() + 1}/${checkOutTime.year()} cho phòng 
+                ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
+                03/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành thanh toán, 
+                quý khách sẽ không được hoàn trả tiền cọc.`,
+
+                user: jobData.user._id,
+                type: "monthly",
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -1034,9 +1044,12 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
-                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
-                user: jobData.user,
+                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                user: jobData.user._id,
+                type: "cancelContract",
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}/pay-deposit-user/`
               });
 
               if (userData.email) {
@@ -1222,9 +1235,16 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month()}/${checkOutTime.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 04/${checkOutTime.month() + 1}/${checkOutTime.year()}. Lưu ý: Nếu không hoàn thành thanh toán, quý khách sẽ không được hoàn trả tiền cọc.`,
-                user: jobData.user,
+
+                content: `Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month()}/${checkOutTime.year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
+                04/${checkOutTime.month() + 1}/${checkOutTime.year()}. Lưu ý: Nếu không hoàn thành thanh toán, 
+                quý khách sẽ không được hoàn trả tiền cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -1457,9 +1477,12 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
-                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
-                user: jobData.user,
+                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                type: "cancelContract",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
               });
 
               if (userData.email) {
@@ -1686,9 +1709,15 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 06/${checkOutDay.month() + 1}/${checkOutDay.year()}. Lưu ý: Nếu không thực hiện đóng hóa đơn này, quý khách sẽ không được hoàn trả tiền cọc.`,
-                user: jobData.user,
+                content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
+                06/${checkOutDay.month() + 1}/${checkOutDay.year()}. Lưu ý: Nếu không thực hiện đóng hóa đơn này, 
+                quý khách sẽ không được hoàn trả tiền cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -1983,9 +2012,15 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng ${moment().month()}/${moment().year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 15/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành đúng hạn, quý khách sẽ bị hủy phòng và mất cọc.`,
-                user: jobData.user,
+                content: `Quý khách vui lòng đóng tiền phòng tháng ${moment().month()}/${moment().year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết 
+                ngày 15/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành đúng hạn, 
+                quý khách sẽ bị hủy phòng và mất cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -2208,9 +2243,12 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
-                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
-                user: jobData.user,
+                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                type: "cancelContract",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
               });
 
               if (userData.email) {
@@ -2314,9 +2352,15 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày ${checkOutDay.format("DD-MM-YYYY")}. Lưu ý: Nếu không hoàn thành đúng hạn, quý khách sẽ bị hủy phòng và mất cọc.`,
-                user: jobData.user,
+                content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} cho phòng 
+                ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
+                Hạn đóng tới hết ngày ${checkOutDay.format("DD-MM-YYYY")}. 
+                Lưu ý: Nếu không hoàn thành đúng hạn, quý khách sẽ bị hủy phòng và mất cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -2542,10 +2586,13 @@ export default (agenda) => {
 
             if(userData) {
               await NotificationController.createNotification({
-                title: "Thông báo hủy hợ đồng",
-                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
-                user: jobData.user,
+                title: "Thông báo hủy hợp đồng",
+                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                type: "cancelContract",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
               });
 
               if (userData.email) {
@@ -2658,9 +2705,15 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 15/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành đúng hạn, quý khách sẽ bị hủy phòng và mất cọc.`,
-                user: jobData.user,
+                content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
+                Hạn đóng tới hết ngày 15/${moment().month() + 1}/${moment().year()}. 
+                Lưu ý: Nếu không hoàn thành đúng hạn, quý khách sẽ bị hủy phòng và mất cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -2886,9 +2939,13 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
-                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
-                user: jobData.user,
+                content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+
+                type: "cancelContract",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
               });
 
               if (userData.email) {
@@ -3165,9 +3222,15 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
-                content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày ${checkOutDayPlus3.format("DD-MM-YYYY")}. Lưu ý: Nếu không thực hiện đóng hóa đơn này, quý khách sẽ không được hoàn trả tiền cọc.`,
-                user: jobData.user,
+                content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
+                Hạn đóng tới hết ngày ${checkOutDayPlus3.format("DD-MM-YYYY")}. 
+                Lưu ý: Nếu không thực hiện đóng hóa đơn này, quý khách sẽ không được hoàn trả tiền cọc.`,
+
+                type: "monthly",
+                user: jobData.user._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
               });
 
               if (userData.email) {
@@ -3498,9 +3561,16 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo gia hạn hợp đồng",
-                content: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}. Vui lòng truy cập trang web: ${process.env.BASE_PATH_CLINET1} thực hiện đăng nhập rồi vào đường dẫn ${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id} để gian hạn hợp đồng. Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,
+                content: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của 
+                quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}. 
+                Vui lòng truy cập trang web: ${process.env.BASE_PATH_CLINET1} thực hiện đăng nhập 
+                rồi vào đường dẫn ${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id} 
+                để gian hạn hợp đồng. Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,
+
+                type: "remindRenewContract",
                 user: userData._id,
                 isRead: false,
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`
               });
               
               //Gửi mail nhắc nhở

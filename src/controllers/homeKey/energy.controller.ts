@@ -5525,6 +5525,9 @@ export default class EnergyController {
           motelRoom: motelRoomModel,
         } = global.mongoModel;
 
+        const jobData = await JobController.getJob("66963bd8042f0f5a1c40633b");
+        console.log(jobData);
+
         
         
   
