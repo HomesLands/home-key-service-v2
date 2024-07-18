@@ -2959,7 +2959,7 @@ export default class JobController {
             console.log({ dayExpire });
 
             // const mailOptions = {
-            //     from: 'cr7ronadol12345@gmail.com',
+            //     from: `${process.env.Gmail_USER}`,
             //     // to: 'quyetthangmarvel@gmail.com',
             //     to: userInfor.email,
             //     subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG`,

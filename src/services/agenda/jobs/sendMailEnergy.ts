@@ -53,14 +53,14 @@ var nodemailer = require('nodemailer');
 //                                 const transporter = nodemailer.createTransport({
 //                                     service: 'gmail',
 //                                     auth: {
-//                                         user: 'cr7ronadol12345@gmail.com',
-//                                         pass: 'wley oiaw yhpl oupy'
+//                                         user: `${process.env.Gmail_USER}`,
+//                                         pass: `${process.env.Gmail_PASS}`
 //                                     }
 //                                 });
 
 //                                 const files = ['a.txt', 'b.pdf', 'c.png'];
 //                                 const mailOptions = {
-//                                     from: 'cr7ronadol12345@gmail.com',
+//                                     from: `${process.env.Gmail_USER}`,
 //                                     // to: listHost[i].email,
 //                                     to: 'quyetthangmarvel@gmail.com',
 //                                     subject: `[${resData[j].name}]TỔNG KẾT TIỀN ĐIỆN NƯỚC THÁNG X NĂM Y`,

@@ -535,6 +535,16 @@ export default class TransactionsController {
         }
       }
 
+      // Check 7 days after check in time
+      await global.agendaInstance.agenda.schedule(
+        moment(resData.checkInTime)
+          .add(7, "days")
+          .endOf("day")
+          .toDate(),
+        "CheckJobStatus",
+        { jobId: resData._id }
+      );
+
       return HttpResponse.returnSuccessResponse(res, transactionsData);
     } catch (e) {
       // await session.commitTransaction();
@@ -1944,13 +1954,13 @@ export default class TransactionsController {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });    
     
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userDataRes.email,  // thay bằng mail admin
                   subject: `THÔNG BÁO KÍCH HOẠT HỢP ĐỒNG`,
