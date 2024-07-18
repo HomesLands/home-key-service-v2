@@ -348,6 +348,7 @@ export default (agenda) => {
       let orderData = await orderModel.findOne(job.attrs.data.orderId);
 
       if (orderData) {
+        let userData = await userModel.findOne({_id: orderData.user}).lean().exec();
         if (!orderData.isCompleted) {
           const jobData = await jobModel.findOne({ orders: orderData._id })
             .lean()
@@ -372,6 +373,44 @@ export default (agenda) => {
             amount: jobDataAfterUpdate.deposit,
             //thêm hạn thanh toán: note
           });
+
+          await NotificationController.createNotification({
+            title: "Thông báo hủy hợp đồng",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã bị hủy hợp đồng vì hết thời hạn thanh toán nhận phòng. 
+            Quý khách sẽ không được hoàn lại các khoản tiền cọc trước đó.`,
+            type: "cancelContract",
+            user: userData._id,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}}pay-deposit-user/`
+          })
+
+          if (userData.email) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
+              }
+            });
+
+            const mailOptions = {
+              from: `${process.env.Gmail_USER}`,
+              // to: 'quyetthangmarvel@gmail.com',
+              to: userData.email,
+              subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
+              text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì hết thời hạn thanh toán nhận phòng. Quý khách sẽ không được hoàn lại các khoản tiền cọc trước đó.`,
+            };
+
+            // Gửi email
+            transporter.sendMail(mailOptions, function (error, info) {
+              if (error) {
+                console.error(error);
+              } else {
+                // console.log('Email đã được gửi: ' + info.response);
+              }
+            });
+          }
 
           if (jobData) {
             let roomId = jobData.room;
@@ -499,15 +538,15 @@ export default (agenda) => {
             const transporter = nodemailer.createTransport({
               service: 'gmail',
               auth: {
-                user: 'cr7ronadol12345@gmail.com',
-                pass: 'wley oiaw yhpl oupy'
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
               }
             });
 
 
 
             const mailOptions = {
-              from: 'cr7ronadol12345@gmail.com',
+              from: `${process.env.Gmail_USER}`,
               // to: 'quyetthangmarvel@gmail.com',
               to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
               subject: `[${motelData.name}] - [${roomData.name}] NHẮC NHỞ DUYỆT THANH TOÁN CỌC`,
@@ -565,48 +604,36 @@ export default (agenda) => {
 
       let jobData = await jobModel.findOne(job.attrs.data.jobId);
 
-      const userData = await userModel.findOne({ _id: jobData.user })
+      if (jobData) {
+        const userData = await userModel.findOne({ _id: jobData.user })
                                                                   .lean()
                                                                   .exec();
 
-
-      if (jobData) {
         let roomId = jobData.room;
 
         if (!jobData.isActived && !jobData.isDeleted) {
-
+         if(userData) {
           const roomData = await roomModel.findOne({_id: jobData.room}).lean().exec();
           const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
 
           const motelData = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
 
-
-          await NotificationController.createNotification({
-            title: "Thông báo hủy cọc",
-            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} đặt cọc ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
-            của quý khách đã bị hủy cọc vì không kích hoạt đúng thời hạn.`,
-            user: jobData.user._id,
-            isRead: false,
-            type: "cancelContract",
-            url: '',
-          });
-
           if(userData.email) {
             const transporter = nodemailer.createTransport({
               service: 'gmail',
               auth: {
-                user: 'cr7ronadol12345@gmail.com',
-                pass: 'wley oiaw yhpl oupy'
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
               }
             });
 
             const mailOptions = {
-              from: 'cr7ronadol12345@gmail.com',
+              from: `${process.env.Gmail_USER}`,
               // to: 'quyetthangmarvel@gmail.com',
               // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
               to: userData.email,
               subject: `[${motelData.name}] - [${roomData.name}] THÔNG BÁO HỦY CỌC`,
-              text: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} của quý khách đã bị hủy cọc vì không kích hoạt đúng thời hạn.`,
+              text: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} của quý khách đã bị hủy cọc vì hết thời hạn kích hoạt hợp đồng`,
             };
     
             transporter.sendMail(mailOptions, function (error, info) {
@@ -617,10 +644,6 @@ export default (agenda) => {
               }
             });
           }
-
-
-
-          
 
           const jobDataAfterUpdate = await jobModel
             .findOneAndUpdate(
@@ -640,6 +663,16 @@ export default (agenda) => {
             type: "noPayDeposit",
             reasonNoPay: "noActive",
             amount: jobDataAfterUpdate.deposit,
+          });
+
+          await NotificationController.createNotification({
+            title: "Thông báo hủy cọc",
+            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} đặt cọc ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
+            của quý khách đã bị hủy cọc vì hết thời hạn kích hoạt hợp đồng.`,
+            user: jobData.user._id,
+            isRead: false,
+            type: "cancelContract",
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
           });
 
           const roomInfor = await roomModel.findOne({ _id: roomId })
@@ -711,6 +744,8 @@ export default (agenda) => {
           await userModel
             .findOneAndUpdate({ _id: userId }, userUpdateData, { new: true })
             .exec();
+         }
+
         }
       }
 
@@ -902,13 +937,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${checkOutTime.month() + 1}/${checkOutTime.year()}`,
@@ -964,6 +999,51 @@ export default (agenda) => {
               reasonNoPay: "noPayMonthly",
               amount: jobDataAfterUpdate.deposit + jobDataAfterUpdate.afterCheckInCost,
               //thêm hạn thanh toán: note
+            });
+
+            const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+  
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
+              ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobData.user._id,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
             });
 
             if (jobData) {
@@ -1045,24 +1125,25 @@ export default (agenda) => {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
-                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.
+                Quý khách sẽ không được hoàn các khoản tiền cọc trước đó.`,
                 user: jobData.user._id,
                 type: "cancelContract",
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}/pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
               });
 
               if (userData.email) {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
@@ -1099,10 +1180,64 @@ export default (agenda) => {
             type: "payDeposit",
             reasonNoPay: "unknown",
             amount: jobDataAfterUpdate.deposit + jobDataAfterUpdate.afterCheckInCost,
-            //thêm hạn thanh toán: note
           });
 
-          //new
+          //user
+          await NotificationController.createNotification({
+            title: "Thông báo hết hợp đồng",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: jobDataAfterUpdate.user,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+          });
+
+          //admin
+          const adminData = await userModel.findOne({
+            role: { $in: ['master']}
+          }).lean().exec();
+
+          await NotificationController.createNotification({
+            title: "Thông báo thực hiện trả cọc",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: adminData._id,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+          });
+
+          const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
+
+          if (userData.email) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
+              }
+            });
+
+            const mailOptions = {
+              from: `${process.env.Gmail_USER}`,
+              // to: 'quyetthangmarvel@gmail.com',
+              to: userData.email,
+              subject: `[${jobData.room.name}] THÔNG BÁO HẾT HẠN HỢP ĐỒNG CHO THUÊ`, //tháng trước
+              text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã hết hạn. Vui lòng truy cập vào đường dẫn ${process.env.BASE_PATH_CLINET3}pay-deposit-user/ , đăng nhập tài khoản để theo dõi thông tin về hoàn trả các khoản tiền cọc.`,
+            };
+
+            // Gửi email
+            transporter.sendMail(mailOptions, function (error, info) {
+              if (error) {
+                console.error(error);
+              } else {
+                // console.log('Email đã được gửi: ' + info.response);
+              }
+            });
+          }
 
           if (jobData) {
             let roomId = jobData.room;
@@ -1251,13 +1386,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${checkOutTime.month()}/${checkOutTime.year()}`,//tháng trước
@@ -1478,7 +1613,7 @@ export default (agenda) => {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
-                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.`,
                 type: "cancelContract",
                 user: jobData.user._id,
                 isRead: false,
@@ -1489,20 +1624,18 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
-                  text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+                  text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.`,
                 };
-
-                
   
                 // Gửi email
                 transporter.sendMail(mailOptions, function (error, info) {
@@ -1724,13 +1857,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
     
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${checkOutDay.month() + 1}/${checkOutDay.year()}`,
@@ -1793,10 +1926,52 @@ export default (agenda) => {
               type: "noPayDeposit",
               reasonNoPay: "noPayMonthly",
               amount: jobDataAfterUpdate.deposit + jobDataAfterUpdate.afterCheckInCost,
-              //thêm hạn thanh toán: note
             });
 
-            //new
+            const roomDataN = await roomModel.findOne({_id: jobDataAfterUpdate.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobDataAfterUpdate.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+  
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn 
+              tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobDataAfterUpdate.user,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+            });
 
             if (jobData) {
               let roomId = jobData.room;
@@ -1892,7 +2067,62 @@ export default (agenda) => {
             //thêm hạn thanh toán: note
           });
 
-          //new
+          //user
+          await NotificationController.createNotification({
+            title: "Thông báo hết hợp đồng",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: jobDataAfterUpdate.user,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+          });
+
+          //admin
+          const adminData = await userModel.findOne({
+            role: { $in: ['master']}
+          }).lean().exec();
+
+          await NotificationController.createNotification({
+            title: "Thông báo thực hiện trả cọc",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: adminData._id,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+          });
+
+          const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
+
+          if (userData.email) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
+              }
+            });
+
+            const mailOptions = {
+              from: `${process.env.Gmail_USER}`,
+              // to: 'quyetthangmarvel@gmail.com',
+              to: userData.email,
+              subject: `[${jobData.room.name}] THÔNG BÁO HẾT HẠN HỢP ĐỒNG CHO THUÊ`, //tháng trước
+              text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã hết hạn. Vui lòng truy cập vào đường dẫn ${process.env.BASE_PATH_CLINET3}pay-deposit-user/ , đăng nhập tài khoản để theo dõi thông tin về hoàn trả các khoản tiền cọc.`,
+            };
+
+            // Gửi email
+            transporter.sendMail(mailOptions, function (error, info) {
+              if (error) {
+                console.error(error);
+              } else {
+                // console.log('Email đã được gửi: ' + info.response);
+              }
+            });
+          }
 
           if (jobData) {
             let roomId = jobData.room;
@@ -2027,13 +2257,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${moment().month()}/${moment().year()}`, //tháng trước
@@ -2084,6 +2314,51 @@ export default (agenda) => {
               reasonNoPay: "noPayMonthly",
               amount: jobData.deposit + jobData.afterCheckInCost,
               //thêm hạn thanh toán: note
+            });
+
+            const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+  
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng
+              ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobData.user._id,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
             });
 
             const startTime = moment().startOf("months").startOf("day");
@@ -2255,13 +2530,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
@@ -2367,13 +2642,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
     
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${timeCal.month() + 1}/${timeCal.year()}`,
@@ -2425,6 +2700,50 @@ export default (agenda) => {
               reasonNoPay: "noPayMonthly",
               amount: jobData.deposit + jobData.afterCheckInCost,
               //thêm hạn thanh toán: note
+            });
+
+            const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng
+              ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobData.user._id,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
             });
 
             const startTime =  moment().startOf("months").startOf("day");
@@ -2599,13 +2918,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
@@ -2720,13 +3039,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${timeCal.month() + 1}/${timeCal.year()}`,
@@ -2777,6 +3096,51 @@ export default (agenda) => {
               reasonNoPay: "noPayMonthly",
               amount: jobData.deposit + jobData.afterCheckInCost,
               //thêm hạn thanh toán: note
+            });
+
+            const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+  
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
+              ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobData.user._id,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
             });
 
             const startTime = moment().startOf("months").startOf("day");
@@ -2952,13 +3316,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
   
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO HỦY HỢP ĐỒNG CHO THUÊ`, //tháng trước
@@ -3237,13 +3601,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                    user: 'cr7ronadol12345@gmail.com',
-                    pass: 'wley oiaw yhpl oupy'
+                    user: `${process.env.Gmail_USER}`,
+                    pass: `${process.env.Gmail_PASS}`
                   }
                 });
     
                 const mailOptions = {
-                  from: 'cr7ronadol12345@gmail.com',
+                  from: `${process.env.Gmail_USER}`,
                   // to: 'quyetthangmarvel@gmail.com',
                   to: userData.email,
                   subject: `[${jobData.room.name}] THÔNG BÁO ĐÓNG TIỀN PHÒNG THÁNG ${checkOutDay.month() + 1}/${checkOutDay.year()}`,
@@ -3292,6 +3656,51 @@ export default (agenda) => {
               reasonNoPay: "noPayMonthly",
               amount: jobDataAfterUpdate.deposit + jobDataAfterUpdate.afterCheckInCost,
               //thêm hạn thanh toán: note
+            });
+
+            const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+            const floorDataN = await floorModel.findOne({rooms: jobData.room}).lean().exec();
+  
+            const motelDataN = await motelRoomModel.findOne({floors: floorDataN._id}).lean().exec();
+  
+
+            if(userData.email) {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: `${process.env.Gmail_USER}`,
+                  pass: `${process.env.Gmail_PASS}`
+                }
+              });
+  
+              const mailOptions = {
+                from: `${process.env.Gmail_USER}`,
+                // to: 'quyetthangmarvel@gmail.com',
+                // to: "cr7ronadol12345@gmail.com",  // thay bằng mail admin
+                to: userData.email,
+                subject: `[${motelDataN.name}] - [${roomDataN.name}] THÔNG BÁO HỦY HỢP ĐỒNG`,
+                text: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              };
+      
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  console.error(error);
+                } else {
+                  // console.log('Email đã được gửi: ' + info.response);
+                }
+              });
+            }
+
+            await NotificationController.createNotification({
+              title: "Thông báo hủy hợp đồng",
+              content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
+              của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
+              ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
+              Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+              user: jobData.user._id,
+              isRead: false,
+              type: "cancelContract",
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
             });
 
             if (jobData) {
@@ -3388,6 +3797,63 @@ export default (agenda) => {
             amount: jobDataAfterUpdate.deposit + jobDataAfterUpdate.afterCheckInCost,
             //thêm hạn thanh toán: note
           });
+
+          //user
+          await NotificationController.createNotification({
+            title: "Thông báo hết hợp đồng",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: jobDataAfterUpdate.user,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+          });
+
+          //admin
+          const adminData = await userModel.findOne({
+            role: { $in: ['master']}
+          }).lean().exec();
+
+          await NotificationController.createNotification({
+            title: "Thông báo thực hiện trả cọc",
+            content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
+            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
+            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            type: "payDeposit",
+            user: adminData._id,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+          });
+
+          const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
+
+          if (userData.email) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: `${process.env.Gmail_USER}`,
+                pass: `${process.env.Gmail_PASS}`
+              }
+            });
+
+            const mailOptions = {
+              from: `${process.env.Gmail_USER}`,
+              // to: 'quyetthangmarvel@gmail.com',
+              to: userData.email,
+              subject: `[${jobData.room.name}] THÔNG BÁO HẾT HẠN HỢP ĐỒNG CHO THUÊ`, //tháng trước
+              text: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của quý khách đã hết hạn. Vui lòng truy cập vào đường dẫn ${process.env.BASE_PATH_CLINET3}pay-deposit-user/ , đăng nhập tài khoản để theo dõi thông tin về hoàn trả các khoản tiền cọc.`,
+            };
+
+            // Gửi email
+            transporter.sendMail(mailOptions, function (error, info) {
+              if (error) {
+                console.error(error);
+              } else {
+                // console.log('Email đã được gửi: ' + info.response);
+              }
+            });
+          }
 
           if (jobData) {
             let roomId = jobData.room;
@@ -3562,10 +4028,9 @@ export default (agenda) => {
               await NotificationController.createNotification({
                 title: "Thông báo gia hạn hợp đồng",
                 content: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của 
-                quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}. 
-                Vui lòng truy cập trang web: ${process.env.BASE_PATH_CLINET1} thực hiện đăng nhập 
-                rồi vào đường dẫn ${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id} 
-                để gian hạn hợp đồng. Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,
+                quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}.
+                Nếu tiếp tục ở, vui lòng truy cập được dẫn bên dưới để gia hạn thêm hợp đồng. 
+                Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,
 
                 type: "remindRenewContract",
                 user: userData._id,
@@ -3579,13 +4044,13 @@ export default (agenda) => {
                 const transporter = nodemailer.createTransport({
                   service: 'gmail',
                   auth: {
-                      user: 'cr7ronadol12345@gmail.com',
-                      pass: 'wley oiaw yhpl oupy'
+                      user: `${process.env.Gmail_USER}`,
+                      pass: `${process.env.Gmail_PASS}`
                   }
                 });
 
                 const mailOptions = {
-                    from: 'cr7ronadol12345@gmail.com',
+                    from: `${process.env.Gmail_USER}`,
                     to: userData.email,
                     subject: `[${resData.room.name}] THÔNG BÁO GIA HẠN HỢP ĐỒNG TRỌ`,
                     text: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}. Vui lòng truy cập trang web: ${process.env.BASE_PATH_CLINET1} thực hiện đăng nhập rồi vào đường dẫn ${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id} để gian hạn hợp đồng. Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,

@@ -5525,8 +5525,10 @@ export default class EnergyController {
           motelRoom: motelRoomModel,
         } = global.mongoModel;
 
-        const jobData = await JobController.getJob("66963bd8042f0f5a1c40633b");
-        console.log(jobData);
+        const jobData = await JobController.getJobNoImg("669768c30f340c6408022e82");
+        console.log({jobData});
+        const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+        console.log({roomDataN});
 
         
         
@@ -5554,13 +5556,13 @@ export default class EnergyController {
       //             const transporter = nodemailer.createTransport({
       //               service: 'gmail',
       //               auth: {
-      //                   user: 'cr7ronadol12345@gmail.com',
-      //                   pass: 'wley oiaw yhpl oupy'
+      //                   user: `${process.env.Gmail_USER}`,
+      //                   pass: `${process.env.Gmail_PASS}`
       //               }
       //             });
   
       //             const mailOptions = {
-      //                 from: 'cr7ronadol12345@gmail.com',
+      //                 from: `${process.env.Gmail_USER}`,
       //                 to: userData.email,
       //                 subject: `[${resData.room.name}] THÔNG BÁO GIA HẠN HỢP ĐỒNG TRỌ`,
       //                 text: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}. Vui lòng truy cập trang web: ${process.env.BASE_PATH_CLINET1} thực hiện đăng nhập rồi vào đường dẫn ${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id} để gian hạn hợp đồng. Lưu ý: Hợp đồng chỉ có thể gia hạn trước thời gian hết hạn 15 ngày.`,
