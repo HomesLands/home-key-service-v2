@@ -146,6 +146,7 @@ export default class RoomController {
         depositPrice: data.depositPrice,
         wifiPrice: req.body.wifiPrice,
         garbagePrice: req.body.garbagePrice,
+        description: data.description,
       };
       if (data.availableDate) {
         initRoomData["availableDate"] = new Date(data.availableDate);
@@ -890,6 +891,7 @@ export default class RoomController {
       }
 
       let { body: data } = req;
+      console.log({ data, roomId });
 
       // Upload image
       if (req["files"]) {
@@ -948,6 +950,7 @@ export default class RoomController {
 
       let initRoomData = lodash.omitBy(
         {
+          description: data.description,
           name: data.name,
           status: data.status,
           price:
@@ -1467,6 +1470,7 @@ export default class RoomController {
     next: NextFunction
   ): Promise<any> {
     try {
+      console.log({ updateRoomData: req.body });
       const { room: roomModel, image: imageModel } = global.mongoModel;
       const id = req.body.id;
       const utilities = req.body.utilities;
@@ -1482,17 +1486,16 @@ export default class RoomController {
       const depositPrice = req.body.depositPrice;
       const linkVideo = req.body.linkVideo;
       const wifiPriceN = req.body.wifiPriceN;
+      const description = req.body.description;
 
       const wifiPrice = req.body.wifiPrice;
       const garbagePrice = req.body.garbagePrice;
-
-      console.log("req.body", req.body);
 
       const vihicle: number = req.body.vihicle;
       const person: number = req.body.person;
 
       const arrayRemoveImg = req.body.arrayRemoveImg;
-      console.log({arrayRemoveImg});
+      console.log({ arrayRemoveImg });
 
       if (arrayRemoveImg.length > 0) {
         const RoomData = await roomModel
@@ -1529,66 +1532,35 @@ export default class RoomController {
       }
 
       let resData = null;
-      if (req.body.arrayUrlImage) {
-        resData = await roomModel
-          .findOneAndUpdate(
-            { _id: id },
-            {
-              utilities: utilities,
-              name: name,
-              idElectricMetter: idElectricMetter,
-              price: price,
-              electricityPrice: electricityPrice,
-              waterPrice: waterPrice,
-              wifiPrice: wifiPrice,
-              garbagePrice: garbagePrice,
-              minimumMonths: minimumMonths,
-              availableDate: moment(availableDate),
-              acreage: acreage,
-              roomPassword: roomPassword,
-              depositPrice: depositPrice,
-              vihicle: vihicle,
-              person: person,
-              linkVideo: linkVideo,
-              wifiPriceN: wifiPriceN,
-            }
-          )
-          .lean()
-          .exec();
+      resData = await roomModel
+        .findOneAndUpdate(
+          { _id: id },
+          {
+            utilities,
+            name,
+            idElectricMetter,
+            price,
+            electricityPrice,
+            waterPrice,
+            wifiPrice,
+            garbagePrice,
+            minimumMonths,
+            availableDate: moment(availableDate),
+            acreage,
+            roomPassword,
+            depositPrice,
+            vihicle,
+            person,
+            linkVideo,
+            wifiPriceN,
+            description,
+          }
+        )
+        .lean()
+        .exec();
 
-        if (!resData) {
-          return HttpResponse.returnErrorWithMessage("Phòng không tồn tại");
-        }
-      } else {
-        resData = await roomModel
-          .findOneAndUpdate(
-            { _id: id },
-            {
-              utilities: utilities,
-              name: name,
-              idElectricMetter: idElectricMetter,
-              price: price,
-              electricityPrice: electricityPrice,
-              waterPrice: waterPrice,
-              wifiPrice: wifiPrice,
-              garbagePrice: garbagePrice,
-              minimumMonths: minimumMonths,
-              availableDate: moment(availableDate),
-              acreage: acreage,
-              roomPassword: roomPassword,
-              depositPrice: depositPrice,
-              vihicle: vihicle,
-              person: person,
-              linkVideo: linkVideo,
-              wifiPriceN: wifiPriceN,
-            }
-          )
-          .lean()
-          .exec();
-
-        if (!resData) {
-          return HttpResponse.returnErrorWithMessage("Phòng không tồn tại");
-        }
+      if (!resData) {
+        return HttpResponse.returnErrorWithMessage("Phòng không tồn tại");
       }
 
       return HttpResponse.returnSuccessResponse(

@@ -119,10 +119,10 @@ export class Room extends Basic {
   @prop({ default: 0 })
   vihicle: number;
 
-  @prop({default: []})
+  @prop({ default: [] })
   listIdElectricMetter: [];
 
-  @prop({default: ''})
+  @prop({ default: "" })
   linkVideo: string;
 }
 
