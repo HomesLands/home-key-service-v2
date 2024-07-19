@@ -654,7 +654,9 @@ export default class JobController {
         type: "cancelDepositByUser",
         user: req["userId"],
         isRead: false,
-        url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+        url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+        tag: null,
+        contentTag: null,
       });
 
       const listOrder = jobData.orders;
@@ -1253,13 +1255,6 @@ export default class JobController {
         expireTime: moment().add(7, "days").endOf("day").toDate(),
       });
 
-      console.log("XXXX room", resData.room.name);
-      console.log("XXXX orderData", orderData);
-      console.log("XXXX motelRoom", resData.motelRoom.name);
-      console.log("XXXX orderData", moment(orderData.expireTime).format("DD-MM-YYYY"));
-      console.log("XXXX user", resData.user._id);
-      console.log("XXXX resData", resData._id);
-
       await NotificationController.createNotification({
         title: "Thông báo thanh toán khi nhận phòng",
         content: `Quý khách đã kích hoạt hợp đồng thành công cho phòng ${resData.room.name} thuộc 
@@ -1267,8 +1262,10 @@ export default class JobController {
         hạn cuối tới ngày ${moment(orderData.expireTime).format("DD-MM-YYYY")}.`,
         user: resData.user._id,
         isRead: false,
-        type: "activeJob",
-        url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`
+        type: "afterCheckInCost",
+        url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`,
+        tag: "Order",
+        contentTag: orderData._id,
       });
 
       resData = await jobModel
@@ -3035,12 +3032,15 @@ export default class JobController {
 
         await NotificationController.createNotification({
           title: "Xác nhận hủy hợp đồng",
-          content: `Bạn đã hủy hợp đồng phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} thành công`,
+          content: `Bạn đã hủy hợp đồng phòng ${jobData.room.name} thuộc dãy 
+          ${jobData.motelRoom.name} thành công`,
 
           type: "cancelContractByHost",
           user: hostData._id,
           isRead: false,
-          url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${jobData.room._id}`
+          url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${jobData.room._id}`,
+          tag: null,
+          contentTag: null,
         });
 
         //for user
@@ -3053,7 +3053,9 @@ export default class JobController {
           type: "cancelContractByHost",
           user: idUserRented,
           isRead: false,
-          url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${jobData.room._id}`
+          url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+          tag: null,
+          contentTag: null,
         });
 
 
