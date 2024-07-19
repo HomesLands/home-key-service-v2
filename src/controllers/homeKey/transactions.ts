@@ -758,7 +758,10 @@ export default class TransactionsController {
         role: { $in: ['master']}
       }).lean().exec();
 
-      let transactionsData = {}
+      // type TransactonType = {
+      //   _id: string
+      // }
+      let transactionsData = {};
       if (formData.type === "afterCheckInCost") {
         transactionsData = await TransactionsModel.create({
           user: req["userId"],
@@ -785,8 +788,10 @@ export default class TransactionsController {
           isRead: false,
           type: "afterCheckInCost",
           url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-after-check-in-cost/${motelData._id}`,
-          tag: "Transactions",
-          contentTag: transactionsData._id,
+          tag: null,
+          contentTag: null,
+          // tag: "Transactions",
+          // contentTag: transactionsData._id,
         });
       } else if (formData.type === "monthly") {
         transactionsData = await TransactionsModel.create({
@@ -814,8 +819,10 @@ export default class TransactionsController {
           isRead: false,
           type: "monthly",
           url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`,
-          tag: "Transactions",
-          contentTag: transactionsData._id,
+          tag: null,
+          contentTag: null,
+          // tag: "Transactions",
+          // contentTag: transactionsData._id,
         });
       }
 
