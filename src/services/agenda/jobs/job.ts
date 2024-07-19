@@ -371,18 +371,21 @@ export default (agenda) => {
             type: "noPayDeposit",
             reasonNoPay: "noPayAterCheckInCost",
             amount: jobDataAfterUpdate.deposit,
-            //thêm hạn thanh toán: note
           });
 
           await NotificationController.createNotification({
             title: "Thông báo hủy hợp đồng",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
             của quý khách đã bị hủy hợp đồng vì hết thời hạn thanh toán nhận phòng. 
             Quý khách sẽ không được hoàn lại các khoản tiền cọc trước đó.`,
+
             type: "cancelContract",
             user: userData._id,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}}pay-deposit-user/`
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+            tag: null,
+            contentTag: null,
           })
 
           if (userData.email) {
@@ -667,12 +670,17 @@ export default (agenda) => {
 
           await NotificationController.createNotification({
             title: "Thông báo hủy cọc",
-            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} đặt cọc ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
+
+            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelData.name} đặt 
+            cọc ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
             của quý khách đã bị hủy cọc vì hết thời hạn kích hoạt hợp đồng.`,
+
             user: jobData.user._id,
             isRead: false,
             type: "cancelContract",
-            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+            tag: null,
+            contentTag: null,
           });
 
           const roomInfor = await roomModel.findOne({ _id: roomId })
@@ -922,15 +930,17 @@ export default (agenda) => {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
 
-                content:`Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month() + 1}/${checkOutTime.year()} cho phòng 
-                ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
+                content:`Quý khách vui lòng đóng tiền phòng tháng${checkOutTime.month() + 1}/${checkOutTime.year()} 
+                cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
                 03/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành thanh toán, 
                 quý khách sẽ không được hoàn trả tiền cọc.`,
 
                 user: jobData.user._id,
                 type: "monthly",
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -1036,14 +1046,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
               ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobData.user._id,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             if (jobData) {
@@ -1124,13 +1138,17 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
+
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
                 quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.
                 Quý khách sẽ không được hoàn các khoản tiền cọc trước đó.`,
+
                 user: jobData.user._id,
                 type: "cancelContract",
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+                tag: null,
+                contentTag: null,
               });
 
               if (userData.email) {
@@ -1173,7 +1191,7 @@ export default (agenda) => {
             { new: true }
           );
 
-          await payDepositListModel.create({
+          const payDepositListData = await payDepositListModel.create({
             room: jobDataAfterUpdate.room,
             user: jobDataAfterUpdate.user,
             job: jobDataAfterUpdate._id,
@@ -1185,13 +1203,17 @@ export default (agenda) => {
           //user
           await NotificationController.createNotification({
             title: "Thông báo hết hợp đồng",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
             của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
             đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+
             type: "payDeposit",
             user: jobDataAfterUpdate.user,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           //admin
@@ -1201,13 +1223,17 @@ export default (agenda) => {
 
           await NotificationController.createNotification({
             title: "Thông báo thực hiện trả cọc",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
-            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
-            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            đã hết hợp đồng thuê. Vui lòng truy cập đường dẫn bên dưới để thực hiện trả 
+            cọc cho người dùng.`,
+
             type: "payDeposit",
             user: adminData._id,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
@@ -1379,7 +1405,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -1612,12 +1640,17 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
+
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
-                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.`,
+                quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng 
+                ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.`,
+
                 type: "cancelContract",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+                tag: null,
+                contentTag: null,
               });
 
               if (userData.email) {
@@ -1842,6 +1875,7 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
+
                 content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} 
                 cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết ngày 
                 06/${checkOutDay.month() + 1}/${checkOutDay.year()}. Lưu ý: Nếu không thực hiện đóng hóa đơn này, 
@@ -1850,7 +1884,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -1963,14 +1999,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn 
               tháng ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobDataAfterUpdate.user,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             if (jobData) {
@@ -2057,7 +2097,7 @@ export default (agenda) => {
             { new: true }
           );
 
-          await payDepositListModel.create({
+          const payDepositListData = await payDepositListModel.create({
             room: jobDataAfterUpdate.room,
             user: jobDataAfterUpdate.user,
             job: jobDataAfterUpdate._id,
@@ -2070,13 +2110,17 @@ export default (agenda) => {
           //user
           await NotificationController.createNotification({
             title: "Thông báo hết hợp đồng",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
             của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
             đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+
             type: "payDeposit",
             user: jobDataAfterUpdate.user,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           //admin
@@ -2086,13 +2130,17 @@ export default (agenda) => {
 
           await NotificationController.createNotification({
             title: "Thông báo thực hiện trả cọc",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
-            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
-            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            đã hết hợp đồng thuê. Vui lòng truy cập đường dẫn bên dưới để thực hiện trả 
+            cọc cho người dùng.`,
+
             type: "payDeposit",
             user: adminData._id,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
@@ -2242,6 +2290,7 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
+
                 content: `Quý khách vui lòng đóng tiền phòng tháng ${moment().month()}/${moment().year()} 
                 cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. Hạn đóng tới hết 
                 ngày 15/${moment().month() + 1}/${moment().year()}. Lưu ý: Nếu không hoàn thành đúng hạn, 
@@ -2250,7 +2299,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`, 
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -2351,14 +2402,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng
               ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn.
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobData.user._id,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             const startTime = moment().startOf("months").startOf("day");
@@ -2518,12 +2573,16 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
+
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
                 quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+
                 type: "cancelContract",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+                tag: null,
+                contentTag: null,
               });
 
               if (userData.email) {
@@ -2627,6 +2686,7 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
+
                 content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} cho phòng 
                 ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
                 Hạn đóng tới hết ngày ${checkOutDay.format("DD-MM-YYYY")}. 
@@ -2635,7 +2695,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -2736,14 +2798,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng
               ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobData.user._id,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             const startTime =  moment().startOf("months").startOf("day");
@@ -2906,12 +2972,16 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
+
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
                 quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
+
                 type: "cancelContract",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+                tag: null,
+                contentTag: null,
               });
 
               if (userData.email) {
@@ -3024,6 +3094,7 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
+
                 content: `Quý khách vui lòng đóng tiền phòng tháng ${timeCal.month() + 1}/${timeCal.year()} 
                 cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
                 Hạn đóng tới hết ngày 15/${moment().month() + 1}/${moment().year()}. 
@@ -3032,7 +3103,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -3133,14 +3206,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
               ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobData.user._id,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             const startTime = moment().startOf("months").startOf("day");
@@ -3303,13 +3380,16 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo hủy hợp đồng",
+
                 content: `Hợp đồng cho thuê phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} của 
                 quý khách đã bị hủy vì quý khách chưa hoàn thành tiền phòng tháng ${moment().month()}/${moment().year()}.`,
 
                 type: "cancelContract",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+                url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+                tag: null,
+                contentTag: null,
               });
 
               if (userData.email) {
@@ -3586,6 +3666,7 @@ export default (agenda) => {
             if (userData) {
               await NotificationController.createNotification({
                 title: "Thông báo đóng tiền phòng",
+
                 content: `Quý khách vui lòng đóng tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()} 
                 cho phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name}. 
                 Hạn đóng tới hết ngày ${checkOutDayPlus3.format("DD-MM-YYYY")}. 
@@ -3594,7 +3675,9 @@ export default (agenda) => {
                 type: "monthly",
                 user: jobData.user._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+                tag: "Order",
+                contentTag: orderData._id,
               });
 
               if (userData.email) {
@@ -3693,14 +3776,18 @@ export default (agenda) => {
 
             await NotificationController.createNotification({
               title: "Thông báo hủy hợp đồng",
+
               content: `Phòng ${roomDataN.name} thuộc tòa nhà ${motelDataN.name} 
               của quý khách đã bị hủy hợp đồng vì không thanh toán hóa đơn tháng 
               ${moment(orderData.startTime).format("MM-YYYY")} đúng hạn. 
               Quý khách sẽ không được hoàn các khoản cọc trước đó.`,
+
               user: jobData.user._id,
               isRead: false,
               type: "cancelContract",
-              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`
+              url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user`,
+              tag: null,
+              contentTag: null,
             });
 
             if (jobData) {
@@ -3788,7 +3875,7 @@ export default (agenda) => {
             { new: true }
           );
 
-          await payDepositListModel.create({
+          const payDepositListData = await payDepositListModel.create({
             room: jobDataAfterUpdate.room,
             user: jobDataAfterUpdate.user,
             job: jobDataAfterUpdate._id,
@@ -3801,13 +3888,17 @@ export default (agenda) => {
           //user
           await NotificationController.createNotification({
             title: "Thông báo hết hợp đồng",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
             của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
             đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+
             type: "payDeposit",
             user: jobDataAfterUpdate.user,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`
+            url: `${process.env.BASE_PATH_CLINET3}pay-deposit-user/`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           //admin
@@ -3817,13 +3908,17 @@ export default (agenda) => {
 
           await NotificationController.createNotification({
             title: "Thông báo thực hiện trả cọc",
+
             content: `Phòng ${jobData.room.name} thuộc dãy ${jobData.motelRoom.name} 
-            của quý khách đã hết thời hạn thuê. Hợp đồng đã hết hạn, bạn vui lòng truy cập 
-            đường dẫn bên dưới để theo dõi khoản trả cọc.`,
+            đã hết hợp đồng thuê. Vui lòng truy cập đường dẫn bên dưới để thực hiện trả 
+            cọc cho người dùng.`,
+
             type: "payDeposit",
             user: adminData._id,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/pay-deposit/${jobData.motelRoom._id}`,
+            tag: "payDepositList",
+            contentTag: payDepositListData._id,
           });
 
           const userData = await userModel.findOne({_id: jobDataAfterUpdate.user}).lean().exec();
@@ -4027,6 +4122,7 @@ export default (agenda) => {
             if(userData) {
               await NotificationController.createNotification({
                 title: "Thông báo gia hạn hợp đồng",
+                
                 content: `Phòng ${resData.room.name} thuộc dãy ${resData.motelRoom.name} của 
                 quý khách sẽ hết hợp đồng vào ${checkOutDay.clone().format("DD-MM-YYYY")}.
                 Nếu tiếp tục ở, vui lòng truy cập được dẫn bên dưới để gia hạn thêm hợp đồng. 
@@ -4035,7 +4131,9 @@ export default (agenda) => {
                 type: "remindRenewContract",
                 user: userData._id,
                 isRead: false,
-                url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`
+                url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${resData.room._id}`,
+                tag: "Job",
+               contentTag: resData._id,
               });
               
               //Gửi mail nhắc nhở

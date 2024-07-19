@@ -513,25 +513,44 @@ export default class TransactionsController {
       // await session.commitTransaction();
       // session.endSession();
 
+      const motelData = await motelRoomModel.findOne({floors: floorData._id}).lean().exec();
+
       const adminData = await userModel.findOne({
         role: { $in: ['master']}
       }).lean().exec();
 
-      const motelData = await motelRoomModel.findOne({floors: floorData._id}).lean().exec();
 
       if(motelData) {
         const ownerData = await userModel.findOne({_id: motelData.owner}).lean().exec();
         if(ownerData) {
+          //admin
           await NotificationController.createNotification({
             title: "Thông báo duyệt thanh toán cọc",
             type: "deposit",
-            content: `Vui lòng duyệt cọc cho phòng ${roomData.name} thuộc tòa nhà ${motelData.name} của chủ trọ 
-            ${ownerData.lastName} ${ownerData.firstName}.`,
+
+            content: `Vui lòng duyệt cọc cho phòng ${roomData.name} thuộc tòa nhà ${motelData.name} 
+            của chủ trọ ${ownerData.lastName} ${ownerData.firstName}.`,
+
             user: adminData._id,
             isRead: false,
-            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-deposit/${motelData._id}`
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-deposit/${motelData._id}`,
+            tag: "Transactions",
+            contentTag: transactionsData._id,
           });
-    
+
+          //user
+          await NotificationController.createNotification({
+            title: "Thông báo đặt cọc phòng",
+            content: `Quý khách đã đặt cọc thành công cho phòng ${roomData.name} thuộc 
+            tòa nhà ${motelData.name} .Vui lòng tải ảnh minh chứng chuyển khoản và 
+            chờ quản trị viên phê duyệt giao dịch.`,
+            user: req["userId"],
+            isRead: false,
+            type: "deposit",
+            url: `${process.env.BASE_PATH_CLINET3}transaction-banking-cash-log`,
+            tag: null,
+            contentTag: null,
+          });
         }
       }
 
@@ -758,12 +777,16 @@ export default class TransactionsController {
 
         await NotificationController.createNotification({
           title: "Thông báo phê duyệt thanh toán khi nhận phòng",
+
           content: `Vui lòng phê duyệt yêu cầu thanh toán khi nhận phòng cho phòng ${roomData.name} thuộc tòa
           ${motelData.name} của chủ trọ ${motelData.owner.lastName} ${motelData.owner.firstName}.`,
+
           user: adminData._id,
           isRead: false,
           type: "afterCheckInCost",
-          url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-after-check-in-cost/${motelData._id}`
+          url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-after-check-in-cost/${motelData._id}`,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
         });
       } else if (formData.type === "monthly") {
         transactionsData = await TransactionsModel.create({
@@ -783,12 +806,16 @@ export default class TransactionsController {
 
         await NotificationController.createNotification({
           title: "Thông báo phê duyệt thanh toán hàng tháng",
+
           content: `Vui lòng phê duyệt yêu cầu thanh toán hàng tháng cho phòng ${roomData.name} thuộc tòa
           ${motelData.name} của chủ trọ ${motelData.owner.lastName} ${motelData.owner.firstName}.`,
+
           user: adminData._id,
           isRead: false,
           type: "monthly",
-          url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`
+          url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
         });
       }
 
@@ -1940,10 +1967,13 @@ export default class TransactionsController {
               title: "Thông báo kích hoạt hợp đồng",
               content: `Đặt cọc phòng của quý khác đã được phê duyệt. Vui lòng kích hoạt hợp đồng cho phòng 
               ${ jobData.room.name} thuộc tòa nhà ${motelRoomData.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+
               user: resData.user._id,
               isRead: false,
               type: "activeJob",
-              url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`
+              url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`,
+              tag: "Job",
+              contentTag: jobData._id,
             });
 
             console.log( `SSSSS: ${process.env.BASE_PATH_CLINET3}job-detail/${jobData._id}/${jobData.room._id}`)

@@ -1077,10 +1077,13 @@ export default class UserController {
     next: NextFunction
   ): Promise<any> {
     // Init user model
+    console.log("RRRRR", req.headers.origin)
     const UserID = req.params.id;
     const { notification: notificationModel } = global.mongoModel;
 
-    const resData = await notificationModel.find({ user: UserID }).sort({createdAt: -1});
+    const resData = await notificationModel.find({ user: UserID })
+      .populate("conditionalContentTag")
+      .sort({createdAt: -1});
 
     if (!resData) {
       return HttpResponse.returnBadRequestResponse(

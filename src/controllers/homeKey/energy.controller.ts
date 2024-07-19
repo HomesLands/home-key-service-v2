@@ -20,6 +20,8 @@ import electric from "services/agenda/jobs/electric";
 
 import { helpers } from "../../utils";
 import { UserModel } from "models/user";
+import NotificationController  from "./notification"
+import * as mongoose from "mongoose";
 
 const width = 595;
 const height = 400;
@@ -5523,12 +5525,27 @@ export default class EnergyController {
           totalKwh: totalKwhModel,
           floor: floorModel,
           motelRoom: motelRoomModel,
+          notification: notificationModel,
         } = global.mongoModel;
 
-        const jobData = await JobController.getJobNoImg("669768c30f340c6408022e82");
-        console.log({jobData});
-        const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
-        console.log({roomDataN});
+        await NotificationController.createNotification({
+          title: "Thông báo duyệt thanh toán cọc",
+          content: `test`,
+          type: "monthly",
+          user: "6684c95e4ee179a284e01ffb",
+          isRead: false,
+          tag: "Transactions",
+          // contentTag: null
+          contentTag: mongoose.Types.ObjectId("66988a3aba9cbd26b8ceaf0e")
+        });
+
+        // const a = await notificationModel.findOne({_id: "6698ddb4ee78495654d7d016"}).populate("conditionalContentTag").lean().exec();
+        // console.log({a});
+
+        // const jobData = await JobController.getJobNoImg("669768c30f340c6408022e82");
+        // console.log({jobData});
+        // const roomDataN = await roomModel.findOne({_id: jobData.room}).lean().exec();
+        // console.log({roomDataN});
 
         
         
