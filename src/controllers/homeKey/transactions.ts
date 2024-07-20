@@ -761,9 +761,9 @@ export default class TransactionsController {
       // type TransactonType = {
       //   _id: string
       // }
-      let transactionsData = {};
+      let transactionsDataN = {};
       if (formData.type === "afterCheckInCost") {
-        transactionsData = await TransactionsModel.create({
+        const transactionsData = await TransactionsModel.create({
           user: req["userId"],
           keyPayment: formData.keyPayment,
           keyOrder: orderData.keyOrder,
@@ -788,13 +788,14 @@ export default class TransactionsController {
           isRead: false,
           type: "afterCheckInCost",
           url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-after-check-in-cost/${motelData._id}`,
-          tag: null,
-          contentTag: null,
-          // tag: "Transactions",
-          // contentTag: transactionsData._id,
+          // tag: transactionsData._id,
+          // contentTag: null,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
         });
+        transactionsDataN = transactionsData;
       } else if (formData.type === "monthly") {
-        transactionsData = await TransactionsModel.create({
+        const transactionsData = await TransactionsModel.create({
           user: req["userId"],
           keyPayment: formData.keyPayment,
           keyOrder: orderData.keyOrder,
@@ -819,11 +820,12 @@ export default class TransactionsController {
           isRead: false,
           type: "monthly",
           url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`,
-          tag: null,
-          contentTag: null,
-          // tag: "Transactions",
-          // contentTag: transactionsData._id,
+          // tag: null,
+          // contentTag: null,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
         });
+        transactionsDataN = transactionsData;
       }
 
       // Get ip
@@ -833,7 +835,7 @@ export default class TransactionsController {
       //   req.socket.remoteAddress ||
       //   req.socket.remoteAddress;
 
-      return HttpResponse.returnSuccessResponse(res, transactionsData);
+      return HttpResponse.returnSuccessResponse(res, transactionsDataN);
     } catch (e) {
       next(e);
     }
