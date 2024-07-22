@@ -145,6 +145,7 @@ export default class RoomController {
         roomPassword: data.roomPassword,
         depositPrice: data.depositPrice,
         wifiPrice: req.body.wifiPrice,
+        wifiPriceN: req.body.wifiPriceN,
         garbagePrice: req.body.garbagePrice,
         description: data.description,
       };
