@@ -13,6 +13,7 @@ import moment = require("moment");
 import BillController from "./bill.controller";
 import { roomStatus } from "../../enums";
 import { index } from "libs/typegoose";
+import NotificationController from "./notification";
 const ObjectId = mongoose.Types.ObjectId;
 
 export default class MotelRoomController {
@@ -1540,7 +1541,6 @@ export default class MotelRoomController {
     res: Response,
     next: NextFunction
   ): Promise<any> {
-    console.log("ÁDLKHFADJKSHFLKJHA")
     try {
       const {
         room: roomModel,
@@ -1660,42 +1660,6 @@ export default class MotelRoomController {
                       jobData[i].dayStart = moment(new Date(start)).format("DD/MM/YYYY");
                       jobData[i].dayEnd = moment(new Date(end)).format("DD/MM/YYYY");
                     }
-                  // }
-                // }
-                // if(room.listIdElectricMetter) {
-                //   let start : string = moment().startOf("month").format("YYYY-MM-DD");
-                //   if(moment(jobData.checkInTime).month() === (moment().month() + 1)) {
-                //     start = moment(jobData.checkInTime).format("YYYY-MM-DD");
-                //   }
-                //   let end: string = moment().format("YYYY-MM-DD");
-
-                //   if(startDate !== 'undefined') {
-                //     start = moment(startDate).format("YYYY-MM-DD");
-                //   }
-                //   if(endDate !== 'undefined') {
-                //     end = moment(endDate).format("YYYY-MM-DD");
-                //   }
-                //   let numberOfElectric = null;
-                  
-                //   if(room.listIdElectricMetter.length > 0) {
-                //     console.log("qure", start);
-                //     const resResult = await EnergyController.calculateElectricUsedDayToDayHaveLabelTime(
-                //       room._id,
-                //       start,
-                //       end,
-                //     );
-                //     if(resResult) {
-                //       numberOfElectric = resResult.totalkWhTime;
-                //       jobData[i].numberOfElectric = numberOfElectric;
-                //       // jobData[i].dayStart = moment(new Date(start)).format("DD-MM-YYYY");
-                //       jobData[i].dayStart = moment(new Date(start)).format("DD/MM/YYYY");
-                //       // jobData[i].dayEnd = moment().format("DD-MM-YYYY");
-                //       jobData[i].dayEnd = moment(new Date(end)).format("DD/MM/YYYY");
-                //     }
-                //   }
-                //   console.log({start});
-                //   console.log({end});
-                // }
               }
             }
 
@@ -1707,6 +1671,7 @@ export default class MotelRoomController {
 
       console.log({startDate});
       console.log({endDate});
+      console.log({resData});
 
       return HttpResponse.returnSuccessResponse(res, resData);
     } catch (e) {
@@ -2174,6 +2139,7 @@ export default class MotelRoomController {
         totalKwh: totalKwhModel,
         floor: floorModel,
         room: roomModel,
+        motelRoom: motelRoomModel,
       } = global.mongoModel;
       const data = [];
       const nameFile = "Thien";
@@ -2197,58 +2163,8 @@ export default class MotelRoomController {
         )
       }
 
-      // if(jobData.currentOrder) {
-      //   if(jobData.currentOrder.isCompleted === true) {
-      //     const orderData = await orderModel.create({
-      //       user: json.idUser,
-      //       job: jobData._id,
-      //       isCompleted: false,
-      //       electricNumber: json.typeElectricity,
-      //       electricPrice: json.totalElectricity,
-      //       numberDayStay: json.typeRoom,
-      //       waterPrice: json.totalWater,
-      //       servicePrice: json.totalGarbage,
-      //       vehiclePrice: json.totalWifi,
-      //       roomPrice: json.totalRoom,
-      //       description: `Tiền phòng từ ${json.dayStart} đến ${json.dayEnd}`,
-      //       amount: json.totalAndTaxAll,
-      //       type: "monthly",
-      //       startTime: moment(json.dayStart, "DD/MM/YYYY").toDate(),
-      //       endTime: moment(json.dayEnd, "DD/MM/YYYY").toDate(),
-      //       expireTime: moment(json.dayEnd, "DD/MM/YYYY").toDate(), //note: để tạm
-      //     });
-
-      //     // await totalKwhModel.create({
-      //     //   order: orderData._id,
-      //     //   kWhData: kWhData,
-      //     //   labelTime: labelTime,
-      //     // });
-  
-      //     // resData = await jobModel.findOneAndUpdate(
-      //     //   { _id: jobData._id },
-      //     //   {
-      //     //     $addToSet: { orders: orderData._id },
-      //     //     currentOrder: orderData._id,
-      //     //     status: "pendingMonthlyPayment",
-      //     //   },
-      //     //   { new: true }
-      //     // );
-
-
-      //   } else {
-      //     return HttpResponse.returnBadRequestResponse(
-      //       res,
-      //       "Hóa đơn hiện tại chưa được thanh toán, vui lòng yêu cầu khách hàng thanh toán trước khi tạo hóa đơn tiếp theo"
-      //     )
-      //   }
-      // }
-      console.log("curremtOrder", jobData.currentOrder);
       if(jobData.currentOrder) {
-        // const currentOrder = await orderModel.findOne({_id: jobData.currentOrder}).lean().exec();
-
         if(jobData.currentOrder.isCompleted === true) {
-          console.log("Tajo moiws")
-          console.log({json});
           const orderData = await orderModel.create({
             user: json.idUser,
             job: jobData._id,
@@ -2259,6 +2175,7 @@ export default class MotelRoomController {
             waterPrice: json.totalWater,
             servicePrice: json.totalGarbage,
             vehiclePrice: json.totalWifi,
+            wifiPrice: json.totalWifiN,
             roomPrice: json.totalRoom,
             description: `Tiền phòng từ ${json.dayStart} đến ${json.dayEnd}`,
             amount: json.totalAndTaxAll,
@@ -2274,7 +2191,7 @@ export default class MotelRoomController {
             labelTime: json.labelTime,
           });
   
-          await jobModel.findOneAndUpdate(
+          const jobDataN = await jobModel.findOneAndUpdate(
             { _id: jobData._id },
             {
               $addToSet: { orders: orderData._id },
@@ -2288,12 +2205,34 @@ export default class MotelRoomController {
 
           const floorData = await floorModel.findOne({rooms: json.idRoom}).lean().exec();
 
+          const motelData = await motelRoomModel.findOne({floors: floorData._id}).lean().exec();
+
           const energy = {
             labelTime: json.labelTime,
             kWhData: json.kWhData,
           }
 
+          // CHIA LÀM 3 LOẠI: 
+          // chưa hết hạn mà rời đi -> trả cọc
+          // chưa hết hạn mà rời đi -> không trả cọc
+          // bị miss hóa đơn chạy tự động, tạo bằng tay
+          
+          //sửa hạn
+          //thêm task kiểm tra
+          //thêm thông báo cho người dùng
+          await NotificationController.createNotification({
+            title: "Thông báo thanh toán hóa đơn phòng",
+            
+            content: `Vui lòng thực hiện thanh toán hóa đơn cho phòng ${roomData.name} thuộc dãy ${motelData.name} của 
+            quý khách.`,
 
+            type: "monthly",
+            user: roomData.rentedBy,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}job-detail/${jobDataN._id}/${roomData._id}`,
+            tag: "Order",
+            contentTag: orderData._id,
+          });
     
           const banking = [];
           // const buffer = await generateOrderMonthlyPendingPayPDF(json,banking, energy);
@@ -2311,40 +2250,6 @@ export default class MotelRoomController {
           )
         }
       }
-
-
-
-
-
-      // console.log({jobData})
-
-      
-      // // insert db
-      // const ress = await BillController.insertDb(json, req["userId"]);
-
-      // // console.log("ress", ress)
-      // if (ress && ress.error) {
-      //   return HttpResponse.returnBadRequestResponse(
-      //     res,
-      //     "Mã Hóa Đơn Đã Tồn Tại"
-      //   );
-      // }
-
-      // let resData = await BankingModel.find()
-      //   .populate("images")
-      //   .lean()
-      //   .exec();
-      // if (resData.length <= 0) {
-      //   return HttpResponse.returnBadRequestResponse(
-      //     res,
-      //     "Chưa Có Tài Khoản Nhận Tiền Liên Hệ Admin"
-      //   );
-      // }
-
-      // console.log("resData[0]", resData[0]);
-      // const buffer = await generatePDF(json, resData[0]);
-
-      
 
     } catch (e) {
       next(e);
@@ -3047,16 +2952,7 @@ async function getBufferOrderMonthly(
   const motelAddress = motelData.address.address;
   const nameRoom = roomData.name;
 
-  console.log("Tớiiiiii")
-
   if(orderData.type === "monthly")  {
-    console.log("Tới 1")
-    // const totalkWhTime = await EnergyController.calculateElectricUsedDayToDayHaveLabelTime(
-    //   roomData._id,
-    //   moment(new Date(orderData.startTime)).format("YYYY-MM-DD"),
-    //   moment(new Date(orderData.endTime)).format("YYYY-MM-DD")
-    // );
-
     const totalkWhTime = await totalKwhModel.findOne({
       order: orderData._id,
     }).lean().exec();
@@ -3071,12 +2967,14 @@ async function getBufferOrderMonthly(
     const unitPriceWater = roomData.waterPrice;
     const unitPriceGarbage = roomData.garbagePrice; // dịch vụ
     const unitPriceWifi = roomData.wifiPrice; // xe
+    const unitPriceWifiN = roomData.wifiPriceN; // xe
     const unitPriceOther = 0;
 
     const typeRoom: number = orderData.numberDayStay;
     const typeWater: number = roomData.person;
     const typeGarbage: string = "1";
     const typeWifi: number = roomData.vihicle;
+    const typeWifiN: number = roomData.person;
     const typeOther = 0;
     let typeElectricity: number = orderData.electricNumber;
 
@@ -3084,6 +2982,7 @@ async function getBufferOrderMonthly(
     const totalAndTaxAll = parseInt(orderData.amount);
     const totalRoom = parseInt(orderData.roomPrice);
     const totalWifi = parseInt(orderData.vehiclePrice);
+    const totalWifiN = parseInt(orderData.wifiPrice);
     const totalGarbage = parseInt(orderData.servicePrice); // service
     const totalWater = parseInt(orderData.waterPrice);
     const totalElectricity = parseInt(orderData.electricPrice);
@@ -3160,6 +3059,11 @@ async function getBufferOrderMonthly(
         typeWifi: typeWifi,
         unitPriceWifi: unitPriceWifi,
         totalWifi: totalWifi,
+
+        expenseWifiN: "Chi Phí Wifi",
+        typeWifiN: typeWifiN,
+        unitPriceWifiN: unitPriceWifiN,
+        totalWifiN: totalWifiN,
 
         expenseOther: "Tiện Ích Khác",
         typeOther: typeOther,
@@ -3486,6 +3390,21 @@ async function generateOrderMonthlyPendingPayPDF(json, banking, energy): Promise
                 },
                 {
                   text: `${json.totalWifi} đ`,
+                },
+              ],
+              [
+                {
+                  text: `${json.expenseWifiN}`,
+                  alignment: "left",
+                },
+                {
+                  text: `${json.typeWifiN}`,
+                },
+                {
+                  text: `${json.unitPriceWifiN} đ`,
+                },
+                {
+                  text: `${json.totalWifiN} đ`,
                 },
               ],
               [
