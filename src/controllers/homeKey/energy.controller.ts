@@ -5547,8 +5547,9 @@ export default class EnergyController {
       //   console.log("đsung")
       // }
 
-      const a = moment("24/07/2024", "DD/MM/YYYY");
-      console.log({a})
+      const a = moment("24/07/2024", "DD/MM/YYYY").startOf("months");
+      const b = moment("24/08/2024", "DD/MM/YYYY").startOf("months");
+      console.log(b.diff(a, "months"));
         // const a = await notificationModel.findOne({_id: "6698ddb4ee78495654d7d016"}).populate("conditionalContentTag").lean().exec();
         // console.log({a});
 
