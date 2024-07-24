@@ -5538,14 +5538,17 @@ export default class EnergyController {
         //   // contentTag: null
         //   contentTag: mongoose.Types.ObjectId("66988a3aba9cbd26b8ceaf0e")
         // });
-        const a = 1;
-        const b = "";
-        const c = 3;
-      if(!(a && b && c)) {
-        console.log("sai")
-      } else {
-        console.log("đsung")
-      }
+      //   const a = 1;
+      //   const b = "";
+      //   const c = 3;
+      // if(!(a && b && c)) {
+      //   console.log("sai")
+      // } else {
+      //   console.log("đsung")
+      // }
+
+      const a = moment("24/07/2024", "DD/MM/YYYY");
+      console.log({a})
         // const a = await notificationModel.findOne({_id: "6698ddb4ee78495654d7d016"}).populate("conditionalContentTag").lean().exec();
         // console.log({a});
 

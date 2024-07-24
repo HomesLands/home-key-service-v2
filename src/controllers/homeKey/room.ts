@@ -869,7 +869,32 @@ export default class RoomController {
 
   /** 
   * @swagger
+  * /v1/homeKey/room/quickDepositByAdmin/:
+  *   post:
+  *     description: Create job by admin
+  *     tags: [Room]
+  *     produces:
+  *       - application/json
+  *     parameters: 
+  *       - in: body
+  *         name: body
+  *         description: Request body
+  *         schema:
+  *           $ref: '#definitions/quickDepositByAdmin'
+  *           type: object
+  *     responses:
+  *       200:
+  *         description: Success
+  *       400:
+  *         description: Invalid request params
+  *       401:
+  *         description: Unauthorized
+  *       404:
+  *         description: Resource not found
+  *     security:
+  *       - auth: []
   */
+
   static async quickDepositByAdmin(
     req: Request,
     res: Response,
@@ -902,7 +927,7 @@ export default class RoomController {
         afterCheckInCost = 0,
 
         rentalPeriod = 1,
-        roonId = "",
+        roomId = "",
         keyPayment = "",
       } = data;
 
@@ -1018,7 +1043,7 @@ export default class RoomController {
         )
       }
 
-      const roomData = await roomModel.findOne({_id: roonId}).lean().exec();
+      const roomData = await roomModel.findOne({_id: roomId}).lean().exec();
 
       if(!roomData) {
         return HttpResponse.returnBadRequestResponse(
@@ -1049,7 +1074,7 @@ export default class RoomController {
       }
 
       const floorData = await floorModel
-        .findOne({ rooms: roonId })
+        .findOne({ rooms: roomId })
         .populate("rooms")
         .lean()
         .exec();
@@ -1070,7 +1095,7 @@ export default class RoomController {
 
       
       let resData = await jobModel.create({
-        checkInTime: moment(checkInTime).startOf("days").toDate(),
+        checkInTime: moment(checkInTime,  "DD/MM/YYYY").startOf("days").toDate(),
         user: userData._id,
         room: roomData._id,
         price: price,
@@ -1329,7 +1354,7 @@ export default class RoomController {
       const email = "emailTest@gmail.com";
       const password = "123456";
       const confirmPassword = "123456";
-      
+
       const phoneNumberObect = {
         countryCode: "+84",
         number: helpers.stripeZeroOut(phoneNumber),
@@ -1463,7 +1488,7 @@ export default class RoomController {
 
       
       let resData = await jobModel.create({
-        checkInTime: moment(checkInTime).startOf("days").toDate(),
+        checkInTime: moment(checkInTime,  "DD/MM/YYYY").startOf("days").toDate(),
         user: userData._id,
         room: roomData._id,
         price: price,

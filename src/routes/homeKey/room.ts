@@ -12,7 +12,9 @@ const roomRoute = express.Router();
 /* -------------------------------------------------------------------------- */
 
 /* ------------------------------- PUBLIC API ------------------------------- */
-roomRoute.route("/depositByAdmin/").post(RoomController.quickDepositByAdmin);
+
+roomRoute.route("/quickDepositByAdmin/").post(RoomController.quickDepositByAdmin);
+
 roomRoute.route("/quickRentByAdmin/").post(RoomController.quickRentByAdmin);
 
 roomRoute.route("/:id/job").get(JobController.getJobByRoomId);
@@ -32,6 +34,7 @@ roomRoute.use(AuthMiddleware.isAuthenticated);
 roomRoute.use(AuthMiddleware.isHost);
 
 /* ------------------------------ PRIVATE APIS ------------------------------ */
+
 
 // Create room
 roomRoute.route("/").post(RoomController.createRoom);
