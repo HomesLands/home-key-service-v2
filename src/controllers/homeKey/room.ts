@@ -1,13 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import * as lodash from "lodash";
 import * as moment from "moment";
+import * as passport from "passport";
 
-import { helpers } from "../../utils";
+import { helpers, jwtHelper, normalizeError } from "../../utils";
 
 import ImageService from "../../services/image";
 import HttpResponse from "../../services/response";
 import NotificationController from "./notification";
 import FloorController from "./floor.controller";
+import { CANCELLED } from "dns";
+import room from "services/agenda/jobs/room";
 
 export default class RoomController {
   /**
@@ -862,6 +865,895 @@ export default class RoomController {
         .lean()
         .exec()
     );
+  }
+
+  /** 
+  * @swagger
+  */
+  static async quickDepositByAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        user: userModel,
+        room: roomModel,
+        transactions: transactionsModel, 
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+        job: jobModel,
+        bill: billModel,
+        banking: bankingModel,
+        order: orderModel,
+      } = global.mongoModel;
+
+      const data = req.body;
+
+      const {
+        phoneNumber = "",
+        checkInTime = "",
+        bankId = "",
+        
+        price = 0,
+        bail = 0,
+        total = 0,
+        deposit = 0,
+        afterCheckInCost = 0,
+
+        rentalPeriod = 1,
+        roonId = "",
+        keyPayment = "",
+      } = data;
+
+      const firstName = data.firstName ? data.firstName : '';
+      const lastName = data.firstName ? data.firstName : '';
+      const email = data.firstName ? data.firstName : '';
+      const password = data.firstName ? data.firstName : '';
+      const confirmPassword = data.firstName ? data.firstName : '';
+
+
+      // let phoneNumber = "0999999993";
+      // const checkInTime = "2024-07-19";
+      // const bankId = "65828a7fac6d1a57e81be5a2";
+      // const price = 83888;
+      // const bail = 802382;
+      // const total = 829083;
+      // const deposit = 82323;
+      // const afterCheckInCost = 823982;
+      // const rentalPeriod = 2;
+      // const roonId = "6684ca384ee179a284e02005";
+      // const firstName = "testt";
+      // const lastName = "account";
+      // const email = "emailTest@gmail.com";
+      // const password = "123456";
+      // const confirmPassword = "123456";
+
+      
+
+      const phoneNumberObect = {
+        countryCode: "+84",
+        number: helpers.stripeZeroOut(phoneNumber),
+      };
+
+      let userData = await userModel.findOne({phoneNumber: phoneNumberObect})
+        .lean()
+        .exec();
+
+      if(!userData) {
+        if(!(firstName && lastName && email && password && confirmPassword)) {
+          return HttpResponse.returnBadRequestResponse(
+            res,
+            "Tài khoản không tồn tại, vui lòng nhập đủ thông tin để tạo tài khoản"
+          );
+        }
+        let dataSignUp = {
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: phoneNumberObect,
+          email: email,
+          password: password,
+          confirmPassword: confirmPassword,
+          role: ['customer'],
+        }
+
+        // Validate input data for signUp
+        const validateResults = await userModel.validateData(["signUp"], dataSignUp);
+
+        // Parse error list form validation results
+        const errorList = normalizeError(validateResults);
+
+        // Validation Error
+        if (errorList.length > 0) {
+          return HttpResponse.returnBadRequestResponse(res, errorList);
+        }
+
+         // Check if password and confirm password is matched
+        if (dataSignUp.password !== dataSignUp.confirmPassword) {
+          return HttpResponse.returnBadRequestResponse(
+            res,
+            "Mật khẩu không trùng nhau"
+          );
+        }
+
+        // Check email
+        const existingUserEmail = await userModel
+          .findOne({
+            email: dataSignUp.email,
+            isDeleted: false,
+          })
+          .lean()
+          .exec();
+
+        if (existingUserEmail) {
+          return HttpResponse.returnBadRequestResponse(res, "Email đã tồn tại");
+        }
+
+        // active
+        dataSignUp["active"] = true;
+
+        if (!dataSignUp.role.includes("customer")) {
+          dataSignUp.role.push("customer");
+        }
+
+        userData = new userModel(dataSignUp);
+        userData.phoneNumberFull = phoneNumber;
+
+        // Generate jwt token
+        userData.token = jwtHelper.signToken(userData._id, "local");
+
+        let resData = await userData.save();
+        console.log({ resData, userData });
+        resData = resData.toObject();
+
+        // Remove password property
+        delete resData.password;
+        delete resData.social;
+      }
+
+      if(userData.isLocked) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tài khoản của khách hàng đã bị khóa tạm thời nên không thể tiến hành đặt cọc"
+        )
+      }
+
+      const roomData = await roomModel.findOne({_id: roonId}).lean().exec();
+
+      if(!roomData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Phòng không tồn tại"
+        );
+      }
+
+      if(roomData.status !== "available") {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Phòng đã được đặt, vui lòng chọn phòng khác"
+        );
+      }
+
+      const transactionsData = await transactionsModel.findOne({
+        room: roomData._id,
+        status: "waiting",
+        type: "deposit",
+        isDeleted: false,
+      }).lean().exec();
+
+      if(transactionsData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Đã có giao dịch cọc cho phòng này, vui lòng kiểm tra và phê duyệt"
+        );
+      }
+
+      const floorData = await floorModel
+        .findOne({ rooms: roonId })
+        .populate("rooms")
+        .lean()
+        .exec();
+
+      if (!floorData) {
+        return HttpResponse.returnBadRequestResponse(res, "Tầng không hợp lệ");
+      }
+
+      const motelRoomData = await motelRoomModel
+        .findOne({ floors: floorData._id })
+        .populate("floors owner address")
+        .lean()
+        .exec();
+
+      if (!motelRoomData) {
+        return HttpResponse.returnBadRequestResponse(res, "Tòa nhà không hợp lệ");
+      }
+
+      
+      let resData = await jobModel.create({
+        checkInTime: moment(checkInTime).startOf("days").toDate(),
+        user: userData._id,
+        room: roomData._id,
+        price: price,
+        bail: bail,
+        total: total,
+        afterCheckInCost: afterCheckInCost,
+        deposit: deposit,
+        rentalPeriod: rentalPeriod,
+        
+        fullName: userData.lastName + " " + userData.firstName,
+        phoneNumber: userData.phoneNumber.countryCode +  userData.phoneNumber.number,
+      });
+
+      let userUpdateData = {
+        $addToSet: {
+          jobs: resData._id,
+        },
+      };
+
+      //order, transaction, bill of deposit
+      const orderData = await orderModel.create({
+        user: userData._id,
+        job: resData._id,
+        isCompleted: false,
+        description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: deposit,
+        type: "deposit",
+        expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+      });
+
+      resData = await jobModel.findOneAndUpdate(
+        { _id: resData._id },
+        {
+          isCompleted: orderData.isCompleted,
+          $addToSet: { orders: orderData._id },
+          currentOrder: orderData._id,
+        },
+        { new: true }
+      );
+
+      await transactionsModel.create({
+        user: userData._id,
+        keyPayment: keyPayment, // note
+        keyOrder: orderData.keyOrder,
+        description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: orderData.amount,
+        status: "success",
+        paymentMethod: "cash",
+        order: orderData._id,
+        banking: bankId, // note
+        type: "deposit",
+        motel: motelRoomData._id,
+        room: roomData._id,
+      });
+
+      const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+
+      await billModel.create({
+        order: orderData._id,
+        idBill: orderData.keyOrder,
+        dateBill: moment().format("DD/MM/YYYY"),
+        nameMotel: motelRoomData.name,
+        addressMotel: motelRoomData.address.address,
+        nameRoom: roomData.name,
+
+        nameUser: userData.lastName + " " + userData.firstName,
+        phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+        addressUser: userData.address,
+        emailUser: userData.email,
+
+        nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+        emailOwner: motelRoomData.owner.email,
+        phoneOwner: 
+          motelRoomData.owner.phoneNumber.countryCode 
+          + motelRoomData.owner.phoneNumber.number,
+        addressOwner: motelRoomData.owner.address,
+        nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+        numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+        nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+        totalAll: orderData.amount.toFixed(2),
+        totalAndTaxAll: orderData.amount.toFixed(2),
+        totalTaxAll: 0,
+        typeTaxAll: 0,
+
+        description: orderData.description,
+
+        user: userData._id,
+        motel: motelRoomData._id,
+        roomRented: roomData._id,
+
+        type: "deposit",
+      });
+
+      await userModel
+        .findOneAndUpdate({ _id: userData._id }, userUpdateData, { new: true })
+        .exec();
+
+      await roomModel
+      .findOneAndUpdate(
+        { _id: roomData._id },
+        { status: "deposited", rentedBy: userData._id },
+        { new: true }
+      )
+      .exec();
+
+      const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
+        return room.status;
+      });
+
+      await floorModel
+        .findOneAndUpdate(
+          { _id: floorData._id },
+          {
+            availableRoom: roomGroup["available"]
+              ? roomGroup["available"].length
+              : 0,
+            rentedRoom: roomGroup["rented"]
+              ? roomGroup["rented"].length
+              : 0,
+            depositedRoom: roomGroup["deposited"]
+              ? roomGroup["deposited"].length
+              : 0,
+          }
+        )
+        .exec();
+
+      let updateData = {
+        availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
+        rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
+        depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+      };
+
+      await motelRoomModel
+        .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
+        .exec();
+
+      await jobModel
+        .findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: true,
+            status: "pendingActivated",
+          },
+          { new: true }
+        )
+        .exec();
+
+      const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+
+      await NotificationController.createNotification({
+        title: "Thông báo kích hoạt hợp đồng",
+        content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+        ${ roomData.name} thuộc tòa nhà ${motelRoomData.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+
+        user: resData.user._id,
+        isRead: false,
+        type: "activeJob",
+        url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomData._id}`,
+        tag: "Job",
+        contentTag: resData._id,
+      });
+
+      await global.agendaInstance.agenda.schedule(
+        moment(resData.checkInTime)
+          .add(7, "days")
+          .endOf("day")
+          .toDate(),
+        "CheckJobStatus",
+        { jobId: resData._id }
+      );
+
+      // const userDataRes = await userModel.findOne({_id: resData.user}).lean().exec();
+      // if(userDataRes) {
+      //   if(userDataRes.email) {
+      //     const transporter = nodemailer.createTransport({
+      //       service: 'gmail',
+      //       auth: {
+      //         user: `${process.env.Gmail_USER}`,
+      //         pass: `${process.env.Gmail_PASS}`
+      //       }
+      //     });    
+
+      //     const mailOptions = {
+      //       from: `${process.env.Gmail_USER}`,
+      //       // to: 'quyetthangmarvel@gmail.com',
+      //       to: userDataRes.email,  // thay bằng mail admin
+      //       subject: `THÔNG BÁO KÍCH HOẠT HỢP ĐỒNG`,
+      //       text: `Vui lòng kích hoạt hợp đồng, hạn cuối: ${activeExpireTime}.`,
+      //     };
+
+      //     transporter.sendMail(mailOptions, function (error, info) {
+      //       if (error) {
+      //         console.error(error);
+      //       } else {
+      //         // console.log('Email đã được gửi: ' + info.response);
+      //       }
+      //     });
+      //   }
+      // }
+
+
+      // passport.authenticate("local", { session: false }, async (err, rs) => {
+      //   req.body.phoneNumber = {
+      //     countryCode: "+84",
+      //     number: helpers.stripeZeroOut(phoneNumber),
+      //   };
+
+      //   console.log("nếu có lỗi: ", err)
+      // })(req, res, next);
+
+      return HttpResponse.returnSuccessResponse(
+        res,
+        resData
+      )
+
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async quickRentByAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        user: userModel,
+        room: roomModel,
+        transactions: transactionsModel, 
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+        job: jobModel,
+        bill: billModel,
+        banking: bankingModel,
+        order: orderModel,
+      } = global.mongoModel;
+
+      //note: CẦN THÊM ẢNH  CMND ĐỂ ACTIVE
+
+
+      let phoneNumber = "0999999995";
+      const checkInTime = "2024-07-19";
+      const bankingId = "65828a7fac6d1a57e81be5a2";
+      const price = 83888;
+      const bail = 802382;
+      const total = 829083;
+      const deposit = 82323;
+      const afterCheckInCost = 823982;
+      const rentalPeriod = 2;
+      const idRoom = "6684ca384ee179a284e02005";
+      const firstName = "testt";
+      const lastName = "account";
+      const email = "emailTest@gmail.com";
+      const password = "123456";
+      const confirmPassword = "123456";
+      
+      const phoneNumberObect = {
+        countryCode: "+84",
+        number: helpers.stripeZeroOut(phoneNumber),
+      };
+
+      let userData = await userModel.findOne({phoneNumber: phoneNumberObect})
+        .lean()
+        .exec();
+
+      if(!userData) {
+        let dataSignUp = {
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: phoneNumberObect,
+          email: email,
+          password: password,
+          confirmPassword: confirmPassword,
+          role: ['customer'],
+        }
+
+        // Validate input data for signUp
+        const validateResults = await userModel.validateData(["signUp"], dataSignUp);
+
+        // Parse error list form validation results
+        const errorList = normalizeError(validateResults);
+
+        // Validation Error
+        if (errorList.length > 0) {
+          return HttpResponse.returnBadRequestResponse(res, errorList);
+        }
+
+          // Check if password and confirm password is matched
+        if (dataSignUp.password !== dataSignUp.confirmPassword) {
+          return HttpResponse.returnBadRequestResponse(
+            res,
+            "Mật khẩu không trùng nhau"
+          );
+        }
+
+        // Check email
+        const existingUserEmail = await userModel
+          .findOne({
+            email: dataSignUp.email,
+            isDeleted: false,
+          })
+          .lean()
+          .exec();
+
+        if (existingUserEmail) {
+          return HttpResponse.returnBadRequestResponse(res, "Email đã tồn tại");
+        }
+
+        // active
+        dataSignUp["active"] = true;
+
+        if (!dataSignUp.role.includes("customer")) {
+          dataSignUp.role.push("customer");
+        }
+
+        userData = new userModel(dataSignUp);
+        userData.phoneNumberFull = phoneNumber;
+
+        // Generate jwt token
+        userData.token = jwtHelper.signToken(userData._id, "local");
+
+        let resData = await userData.save();
+        console.log({ resData, userData });
+        resData = resData.toObject();
+
+        // Remove password property
+        delete resData.password;
+        delete resData.social;
+      }
+
+      if(userData.isLocked) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tài khoản của khách hàng đã bị khóa tạm thời nên không thể tiến hành đặt cọc"
+        )
+      }
+
+      const roomData = await roomModel.findOne({_id: idRoom}).lean().exec();
+
+      if(!roomData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Phòng không tồn tại"
+        );
+      }
+
+      if(roomData.status !== "available") {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Phòng đã được đặt, vui lòng chọn phòng khác"
+        );
+      }
+
+      const transactionsData = await transactionsModel.findOne({
+        room: roomData._id,
+        status: "waiting",
+        type: "deposit",
+        isDeleted: false,
+      }).lean().exec();
+
+      if(transactionsData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Đã có giao dịch cọc cho phòng này, vui lòng kiểm tra và phê duyệt"
+        );
+      }
+
+      const floorData = await floorModel
+        .findOne({ rooms: idRoom })
+        .populate("rooms")
+        .lean()
+        .exec();
+
+      if (!floorData) {
+        return HttpResponse.returnBadRequestResponse(res, "Tầng không hợp lệ");
+      }
+
+      const motelRoomData = await motelRoomModel
+        .findOne({ floors: floorData._id })
+        .populate("floors owner address")
+        .lean()
+        .exec();
+
+      if (!motelRoomData) {
+        return HttpResponse.returnBadRequestResponse(res, "Tòa nhà không hợp lệ");
+      }
+
+      
+      let resData = await jobModel.create({
+        checkInTime: moment(checkInTime).startOf("days").toDate(),
+        user: userData._id,
+        room: roomData._id,
+        price: price,
+        bail: bail,
+        total: total,
+        afterCheckInCost: afterCheckInCost,
+        deposit: deposit,
+        rentalPeriod: rentalPeriod,
+        
+        fullName: userData.lastName + " " + userData.firstName,
+        phoneNumber: userData.phoneNumber.countryCode +  userData.phoneNumber.number,
+      });
+
+      let userUpdateData = {
+        $addToSet: {
+          jobs: resData._id,
+        },
+      };
+
+      await userModel
+        .findOneAndUpdate({ _id: userData._id }, userUpdateData, { new: true })
+        .exec();
+
+      const bankData = await bankingModel.findOne({_id: bankingId}).lean().exec();
+
+      {
+        //order, transaction, bill of deposit
+        const orderDataDeposit = await orderModel.create({
+          user: userData._id,
+          job: resData._id,
+          isCompleted: false,
+          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: deposit,
+          type: "deposit",
+          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: orderDataDeposit.isCompleted,
+            $addToSet: { orders: orderDataDeposit._id },
+            currentOrder: orderDataDeposit._id,
+          },
+          { new: true }
+        );
+
+
+        await transactionsModel.create({
+          user: userData._id,
+          keyPayment: "JKHASDKFJHAS", // note
+          keyOrder: orderDataDeposit.keyOrder,
+          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderDataDeposit.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderDataDeposit._id,
+          banking: bankingId, // note
+          type: "deposit",
+          motel: motelRoomData._id,
+          room: roomData._id,
+        });
+
+        await billModel.create({
+          order: orderDataDeposit._id,
+          idBill: orderDataDeposit.keyOrder,
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomData.name,
+          addressMotel: motelRoomData.address.address,
+          nameRoom: roomData.name,
+
+          nameUser: userData.lastName + " " + userData.firstName,
+          phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+          addressUser: userData.address,
+          emailUser: userData.email,
+
+          nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+          emailOwner: motelRoomData.owner.email,
+          phoneOwner: 
+            motelRoomData.owner.phoneNumber.countryCode 
+            + motelRoomData.owner.phoneNumber.number,
+          addressOwner: motelRoomData.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderDataDeposit.amount.toFixed(2),
+          totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderDataDeposit.description,
+
+          user: userData._id,
+          motel: motelRoomData._id,
+          roomRented: roomData._id,
+
+          type: "deposit",
+        });
+      }
+
+      {
+        //order afterCheckInCost
+        const orderDataAfterCheckInCost = await orderModel.create({
+          user: resData.user,
+          job: resData._id,
+          isCompleted: false,
+          description: `Tiền thanh toán khi nhận phòng tháng 
+          ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: resData.afterCheckInCost,
+          type: "afterCheckInCost",
+          expireTime: moment().add(7, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            $addToSet: { orders: orderDataAfterCheckInCost._id },
+            currentOrder: orderDataAfterCheckInCost._id,
+          },
+          { new: true }
+        );
+        
+        await transactionsModel.create({
+          user: userData._id,
+          keyPayment: "JKHASDKFJHAS", // note
+          keyOrder: orderDataAfterCheckInCost.keyOrder,
+          description:  `Tiền thanh toán khi nhận phòng tháng 
+          ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderDataAfterCheckInCost.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderDataAfterCheckInCost._id,
+          banking: bankingId, // note
+          type: "afterCheckInCost",
+          motel: motelRoomData._id,
+          room: roomData._id,
+        });
+
+        await billModel.create({
+          order: orderDataAfterCheckInCost._id,
+          idBill: "KHLASDJFDS",
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomData.name,
+          addressMotel: motelRoomData.address.address,
+          nameRoom: roomData.name,
+
+          nameUser: userData.lastName + " " + userData.firstName,
+          phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+          addressUser: userData.address,
+          emailUser: userData.email,
+
+          nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+          emailOwner: motelRoomData.owner.email,
+          phoneOwner: 
+            motelRoomData.owner.phoneNumber.countryCode 
+            + motelRoomData.owner.phoneNumber.number,
+          addressOwner: motelRoomData.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
+          totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderDataAfterCheckInCost.orderData,
+
+          user: userData._id,
+          motel: motelRoomData._id,
+          roomRented: roomData._id,
+
+          type: "afterCheckInCost",
+        });
+      }
+
+      //Kiểm tra thời gian checkIn đã nằm ở tháng trước chưa
+      // - Khác tháng: tạo hết tất cả order đã qua
+      // + Kiểm tra thanh toán tháng vừa rồi hay chưa
+      // - Cùng tháng: lên lịch tạo order đầu tiên
+
+      // const checkInDay = moment(checkInTime).startOf()
+      // if()
+
+
+
+
+      await roomModel
+      .findOneAndUpdate(
+        { _id: roomData._id },
+        { status: "rented", rentedBy: userData._id },
+        { new: true }
+      )
+      .exec();
+
+      const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
+        return room.status;
+      });
+
+      await floorModel
+        .findOneAndUpdate(
+          { _id: floorData._id },
+          {
+            availableRoom: roomGroup["available"]
+              ? roomGroup["available"].length
+              : 0,
+            rentedRoom: roomGroup["rented"]
+              ? roomGroup["rented"].length
+              : 0,
+            depositedRoom: roomGroup["deposited"]
+              ? roomGroup["deposited"].length
+              : 0,
+          }
+        )
+        .exec();
+
+      let updateData = {
+        availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
+        rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
+        depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+      };
+
+      await motelRoomModel
+        .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
+        .exec();
+
+      await jobModel
+        .findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: true,
+            status: "pendingActivated",
+          },
+          { new: true }
+        )
+        .exec();
+
+      // const userDataRes = await userModel.findOne({_id: resData.user}).lean().exec();
+      // if(userDataRes) {
+      //   if(userDataRes.email) {
+      //     const transporter = nodemailer.createTransport({
+      //       service: 'gmail',
+      //       auth: {
+      //         user: `${process.env.Gmail_USER}`,
+      //         pass: `${process.env.Gmail_PASS}`
+      //       }
+      //     });    
+
+      //     const mailOptions = {
+      //       from: `${process.env.Gmail_USER}`,
+      //       // to: 'quyetthangmarvel@gmail.com',
+      //       to: userDataRes.email,  // thay bằng mail admin
+      //       subject: `THÔNG BÁO KÍCH HOẠT HỢP ĐỒNG`,
+      //       text: `Vui lòng kích hoạt hợp đồng, hạn cuối: ${activeExpireTime}.`,
+      //     };
+
+      //     transporter.sendMail(mailOptions, function (error, info) {
+      //       if (error) {
+      //         console.error(error);
+      //       } else {
+      //         // console.log('Email đã được gửi: ' + info.response);
+      //       }
+      //     });
+      //   }
+      // }
+
+
+
+      
+
+
+      // passport.authenticate("local", { session: false }, async (err, rs) => {
+      //   req.body.phoneNumber = {
+      //     countryCode: "+84",
+      //     number: helpers.stripeZeroOut(phoneNumber),
+      //   };
+
+      //   console.log("nếu có lỗi: ", err)
+      // })(req, res, next);
+
+      return HttpResponse.returnSuccessResponse(
+        res,
+        resData
+      )
+
+
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async editRoomById(

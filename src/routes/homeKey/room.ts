@@ -12,12 +12,16 @@ const roomRoute = express.Router();
 /* -------------------------------------------------------------------------- */
 
 /* ------------------------------- PUBLIC API ------------------------------- */
+roomRoute.route("/depositByAdmin/").post(RoomController.quickDepositByAdmin);
+roomRoute.route("/quickRentByAdmin/").post(RoomController.quickRentByAdmin);
+
 roomRoute.route("/:id/job").get(JobController.getJobByRoomId);
 
 // Get room detail
 roomRoute.route("/:id").get(RoomController.getRoomDetail);
 // Post room detail
 roomRoute.route("/:id").post(RoomController.editRoomByIdStatus);
+
 
 /* ---------------------------- CHECK PERMISSION ---------------------------- */
 

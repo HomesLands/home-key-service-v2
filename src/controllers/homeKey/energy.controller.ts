@@ -5517,28 +5517,35 @@ export default class EnergyController {
       // console.log({a});
 
       // {
-        const {
-          user: userModel,
-          order: orderModel,
-          job: jobModel,
-          room: roomModel,
-          totalKwh: totalKwhModel,
-          floor: floorModel,
-          motelRoom: motelRoomModel,
-          notification: notificationModel,
-        } = global.mongoModel;
+        // const {
+        //   user: userModel,
+        //   order: orderModel,
+        //   job: jobModel,
+        //   room: roomModel,
+        //   totalKwh: totalKwhModel,
+        //   floor: floorModel,
+        //   motelRoom: motelRoomModel,
+        //   notification: notificationModel,
+        // } = global.mongoModel;
 
-        await NotificationController.createNotification({
-          title: "Thông báo duyệt thanh toán cọc",
-          content: `test`,
-          type: "monthly",
-          user: "6684c95e4ee179a284e01ffb",
-          isRead: false,
-          tag: "Transactions",
-          // contentTag: null
-          contentTag: mongoose.Types.ObjectId("66988a3aba9cbd26b8ceaf0e")
-        });
-
+        // await NotificationController.createNotification({
+        //   title: "Thông báo duyệt thanh toán cọc",
+        //   content: `test`,
+        //   type: "monthly",
+        //   user: "6684c95e4ee179a284e01ffb",
+        //   isRead: false,
+        //   tag: "Transactions",
+        //   // contentTag: null
+        //   contentTag: mongoose.Types.ObjectId("66988a3aba9cbd26b8ceaf0e")
+        // });
+        const a = 1;
+        const b = "";
+        const c = 3;
+      if(!(a && b && c)) {
+        console.log("sai")
+      } else {
+        console.log("đsung")
+      }
         // const a = await notificationModel.findOne({_id: "6698ddb4ee78495654d7d016"}).populate("conditionalContentTag").lean().exec();
         // console.log({a});
 

@@ -318,15 +318,6 @@ export default class TransactionsController {
 
       let { body: formData } = req;
 
-      //note: kiểm tra phòng này đã được cọc trước chưa: kể cả các cọc đang chờ phê duyệt
-      //cân nhắc: transaction được duyệt xong thì chuyển về isDeleted: true
-
-      //tìm transaction: 
-      //isDeleted: false
-      //room: roomId
-      //type: deposit
-      //status: waiting
-
       const userDataRes = await userModel.findOne({_id:  req["userId"]}).lean().exec();
 
       if(userDataRes) {
@@ -466,7 +457,6 @@ export default class TransactionsController {
         )
         .exec();
 
-      //note: hóa đơn này phụ thuộc vào chủ trọ accept, 
       const orderData = await orderModel.create({
         user: req["userId"],
         job: resData._id,
@@ -487,13 +477,6 @@ export default class TransactionsController {
         },
         { new: true }
       );
-
-      //kiểm tra đã được duyệt cọc chưa, mail chủ trọ nhắc duyệt
-      // await global.agendaInstance.agenda.schedule(
-      //   moment().add("2", 'minutes').toDate(),
-      //   'CheckAcceptOrder',
-      //   { orderId: orderData._id }
-      // );
 
       const transactionsData = await TransactionsModel.create({
         user: req["userId"],
@@ -1961,7 +1944,7 @@ export default class TransactionsController {
               totalTaxAll: 0,
               typeTaxAll: 0,
 
-              description: orderData.orderData,
+              description: orderData.description,
 
               user: jobData.user,
               motel: motelRoomData._id,
@@ -2075,7 +2058,7 @@ export default class TransactionsController {
             totalTaxAll: 0,
             typeTaxAll: 0,
 
-            description: orderData.orderData,
+            description: orderData.description,
 
             user: JobData.user._id,
             motel: motelData._id,
@@ -2087,12 +2070,7 @@ export default class TransactionsController {
           const jobData = await JobController.getJobNoImg(orderData.job);
 
           const checkInTime = moment(jobData.checkInTime);
-          // const checkInTimePlusOneMonth = checkInTime.add(1, "months");
-          // const rentalPeriod = jobData.rentalPeriod;
-          // const checkOutDay = checkInTime.add(rentalPeriod, "months").subtract(1, "days");
 
-          console.log("CHECK INNNN", checkInTime.endOf("months"));
-          console.log("CHECK OUTTTT", moment().endOf("months"));
           // if(checkInTimePlusOneMonth.startOf("months").isBefore(moment())) {
           if(checkInTime.endOf("months").isSame(moment().endOf("months"))) {
             await global.agendaInstance.agenda.schedule(
@@ -2112,34 +2090,6 @@ export default class TransactionsController {
               { jobId: jobData._id }
             );
           }
-  
-
-          // const newOrderData = await orderModel.create({
-          //   user: jobData.user,
-          //   job: jobData._id,
-          //   isCompleted: false,
-          //   // description: `Tiền phòng tháng ${moment().month() + 1}/${moment().year()} `,
-          //   description: `Tiền phòng tháng ${dayGet.getMonth() + 1}/${dayGet.getFullYear()} `,
-          //   amount: Math.floor(
-          //     (jobData.room.price / moment(jobData.checkInTime).daysInMonth()) *
-          //       moment(jobData.checkInTime)
-          //         .endOf("month")
-          //         .diff(moment(jobData.checkInTime), "days")
-          //   ),
-          //   type: "monthly",
-          // });
-
-          // await jobModel
-          //   .findOneAndUpdate(
-          //     { _id: jobData._id },
-          //     {
-          //       $addToSet: { orders: newOrderData._id },
-          //       currentOrder: newOrderData._id,
-          //       status: "pendingMonthlyPayment",
-          //     }
-          //   )
-          //   .exec();
-
         }
 
         await orderModel
