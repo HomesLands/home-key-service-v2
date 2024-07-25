@@ -5517,16 +5517,16 @@ export default class EnergyController {
       // console.log({a});
 
       // {
-        // const {
-        //   user: userModel,
-        //   order: orderModel,
-        //   job: jobModel,
-        //   room: roomModel,
-        //   totalKwh: totalKwhModel,
-        //   floor: floorModel,
-        //   motelRoom: motelRoomModel,
-        //   notification: notificationModel,
-        // } = global.mongoModel;
+        const {
+          user: userModel,
+          order: orderModel,
+          job: jobModel,
+          room: roomModel,
+          totalKwh: totalKwhModel,
+          floor: floorModel,
+          motelRoom: motelRoomModel,
+          notification: notificationModel,
+        } = global.mongoModel;
 
         // await NotificationController.createNotification({
         //   title: "Thông báo duyệt thanh toán cọc",
@@ -5547,9 +5547,23 @@ export default class EnergyController {
       //   console.log("đsung")
       // }
 
-      const a = moment("24/07/2024", "DD/MM/YYYY").startOf("months");
-      const b = moment("24/08/2024", "DD/MM/YYYY").startOf("months");
-      console.log(b.diff(a, "months"));
+
+      const roomData = await roomModel.findOne({_id: "66914b45f876f18c3c23fccf"});
+      let price = roomData.price;
+      let bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
+      let deposit = Number(price) / 2;
+      let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+      let total = Number(price) + Number(bail);
+
+      console.log({price});
+      console.log({bail});
+      console.log({deposit});
+      console.log({afterCheckInCost});
+      console.log({total});
+
+      // const a = moment("24/07/2024", "DD/MM/YYYY").startOf("months");
+      // const b = moment("24/08/2024", "DD/MM/YYYY").startOf("months");
+      // console.log(b.diff(a, "months"));
         // const a = await notificationModel.findOne({_id: "6698ddb4ee78495654d7d016"}).populate("conditionalContentTag").lean().exec();
         // console.log({a});
 

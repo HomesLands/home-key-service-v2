@@ -868,6 +868,42 @@ export default class RoomController {
     );
   }
 
+  /**
+   * @swagger
+   * definitions:
+   *   quickDepositByAdmin:
+   *     required:
+   *       - phoneNumber
+   *       - checkInTime
+   *       - bankId
+   *       - rentalPeriod
+   *       - roomId
+   *       - keyPayment
+   *     properties:
+   *       phoneNumber:
+   *         type: string
+   *       checkInTime:
+   *         type: string
+   *       bankId:
+   *         type: string
+   *       rentalPeriod:
+   *         type: string
+   *       roomId:
+   *         type: string
+   *       keyPayment:
+   *         type: string
+   *       firstName:
+   *         type: string
+   *       lastName:
+   *         type: string
+   *       email:
+   *         type: string
+   *       password:
+   *         type: string
+   *       confirmPassword:
+   *         type: string
+   */
+
   /** 
   * @swagger
   * /v1/homeKey/room/quickDepositByAdmin/:
@@ -920,12 +956,6 @@ export default class RoomController {
         phoneNumber = "",
         checkInTime = "",
         bankId = "",
-        
-        price = 0,
-        bail = 0,
-        total = 0,
-        deposit = 0,
-        afterCheckInCost = 0,
 
         rentalPeriod = 1,
         roomId = "",
@@ -1073,6 +1103,12 @@ export default class RoomController {
           "Đã có giao dịch cọc cho phòng này, vui lòng kiểm tra và phê duyệt"
         );
       }
+
+      let price = roomData.price;
+      let bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
+      let deposit = Number(price) / 2;
+      let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+      let total = Number(price) + Number(bail);
 
       const floorData = await floorModel
         .findOne({ rooms: roomId })
@@ -1361,7 +1397,7 @@ export default class RoomController {
 
       const checkInDay = moment(checkInTime, "DD/MM/YYYY").startOf("days");
       const timeMoment = moment();
-      const checkOutDay = checkInDay.clone().add(rentalPeriod, "months");
+      const checkOutDay = checkInDay.clone().add(rentalPeriod, "months").subtract(1, "days").endOf("days");
 
       if(checkOutDay.clone().diff(timeMoment.clone().startOf("months"), "months") < 1) {
         return HttpResponse.returnBadRequestResponse(
@@ -1699,13 +1735,18 @@ export default class RoomController {
         while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone())) {
           //create order
           let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-          if(checkInDay.clone().add(monthPlus, "months").startOf("months").isSame(timeMoment.clone().startOf("months"))) {
-            startTime = checkInDay.clone().add(monthPlus, "months").startOf("days");
+          // if(checkInDay.clone().add(monthPlus, "months").startOf("months").isSame(checkInDay.clone().startOf("months"))) {
+          //   startTime = checkInDay.clone().startOf("days");
+          // }
+
+          //first month
+          if(monthPlus === 0) {
+            startTime = checkInDay.clone().startOf("days");
           }
           let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
 
           let orderDataMonthly = await createOrderHistory(
-            resData,
+            resData, //job
             roomData,
             motelRoomData,
             startTime,
@@ -1717,7 +1758,7 @@ export default class RoomController {
             {
               $addToSet: { orders: orderDataMonthly._id },
               currentOrder: orderDataMonthly._id,
-              status: "pendingMonthlyPayment",//note: chưa chắc trạng thái
+              status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
             }
           );
 
