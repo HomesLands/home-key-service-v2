@@ -370,6 +370,17 @@ export default class TransactionsController {
         );
       }
 
+      formData.price = roomData.price;
+      formData.bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
+      formData.deposit = Number(roomData.price) / 2;
+      formData.afterCheckInCost = 
+        Number(roomData.price) * 0.5 
+        + Number(roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice);
+      formData.total = 
+        Number(roomData.price) 
+        + Number(roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice);
+
+
       const dayID = moment(roomData.availableDate).format("DD/MM/YYYY");
 
       if (
