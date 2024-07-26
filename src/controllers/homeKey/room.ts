@@ -1813,7 +1813,7 @@ export default class RoomController {
       
       if(checkInDay.clone().year() < timeMoment.clone().year()) {
         let monthPlus: number = 0;
-        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone())) {
+        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
           //create order
           let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
 
@@ -1858,7 +1858,7 @@ export default class RoomController {
         if (checkInDay.clone().month() <  timeMoment.clone().month()) {
           // tạo order trước đó
           let monthPlus: number = 0;
-          while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone())) {
+          while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
             //create order
             let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
 
