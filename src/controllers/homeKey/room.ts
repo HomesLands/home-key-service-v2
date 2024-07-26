@@ -1358,6 +1358,67 @@ export default class RoomController {
 
   //CHO PHÉP NHẬP THỜI GIAN CHECK IN VÀ SỐ THÁNG THUÊ CỘNG LẠI 
   // => TỨC THỜI GIAN HẾT HỢP ĐỒNG NẰM Ở THÁNG SAU SO VỚI THỜI ĐIỂM HIỆN TẠI
+
+  /**
+   * @swagger
+   * definitions:
+   *   quickRentByAdmin:
+   *     required:
+   *       - phoneNumber
+   *       - checkInTime
+   *       - bankId
+   *       - rentalPeriod
+   *       - roomId
+   *     properties:
+   *       phoneNumber:
+   *         type: string
+   *       checkInTime:
+   *         type: string
+   *       bankId:
+   *         type: string
+   *       rentalPeriod:
+   *         type: string
+   *       roomId:
+   *         type: string
+   *       firstName:
+   *         type: string
+   *       lastName:
+   *         type: string
+   *       email:
+   *         type: string
+   *       password:
+   *         type: string
+   *       confirmPassword:
+   *         type: string
+   */
+
+  /** 
+  * @swagger
+  * /v1/homeKey/room/quickRentByAdmin/:
+  *   post:
+  *     description: Create job by admin (related orders)
+  *     tags: [Room]
+  *     produces:
+  *       - application/json
+  *     parameters: 
+  *       - in: body
+  *         name: body
+  *         description: Request body
+  *         schema:
+  *           $ref: '#definitions/quickRentByAdmin'
+  *           type: object
+  *     responses:
+  *       200:
+  *         description: Success
+  *       400:
+  *         description: Invalid request params
+  *       401:
+  *         description: Unauthorized
+  *       404:
+  *         description: Resource not found
+  *     security:
+  *       - auth: []
+  */
   static async quickRentByAdmin(
     req: Request,
     res: Response,
@@ -1376,28 +1437,51 @@ export default class RoomController {
         order: orderModel,
       } = global.mongoModel;
 
-      //note: CẦN THÊM ẢNH  CMND ĐỂ ACTIVE
+      // let phoneNumber = "0999999995";
+      // const checkInTime = "2024-07-19";
+      // const bankingId = "65828a7fac6d1a57e81be5a2";
+      // const price = 83888;
+      // const bail = 802382;
+      // const total = 829083;
+      // const deposit = 82323;
+      // const afterCheckInCost = 823982;
+      // const rentalPeriod = 2;
+      // const roomId = "6684ca384ee179a284e02005";
+      // const firstName = "testt";
+      // const lastName = "account";
+      // const email = "emailTest@gmail.com";
+      // const password = "123456";
+      // const confirmPassword = "123456";
 
+      const { body: data } = req;
 
-      let phoneNumber = "0999999995";
-      const checkInTime = "2024-07-19";
-      const bankingId = "65828a7fac6d1a57e81be5a2";
-      const price = 83888;
-      const bail = 802382;
-      const total = 829083;
-      const deposit = 82323;
-      const afterCheckInCost = 823982;
-      const rentalPeriod = 2;
-      const roomId = "6684ca384ee179a284e02005";
-      const firstName = "testt";
-      const lastName = "account";
-      const email = "emailTest@gmail.com";
-      const password = "123456";
-      const confirmPassword = "123456";
+      const {
+        phoneNumber = "",
+        checkInTime = "",
+        bankId = "",
+
+        rentalPeriod = 1,
+        roomId = "",
+      } = data;
+
+      const firstName = data.firstName ? data.firstName : '';
+      const lastName = data.firstName ? data.firstName : '';
+      const email = data.firstName ? data.firstName : '';
+      const password = data.firstName ? data.firstName : '';
+      const confirmPassword = data.firstName ? data.firstName : '';
+
 
       const checkInDay = moment(checkInTime, "DD/MM/YYYY").startOf("days");
       const timeMoment = moment();
       const checkOutDay = checkInDay.clone().add(rentalPeriod, "months").subtract(1, "days").endOf("days");
+
+      //Đã thuê => Thời gian thuê thuộc về quá khứ
+      if(checkInDay.clone().isSameOrAfter(timeMoment.clone().startOf("days"))) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Vui lòng nhập thời gian bắt đầu thuê nhỏ hơn thời gian hiện tại"
+        )
+      }
 
       if(checkOutDay.clone().diff(timeMoment.clone().startOf("months"), "months") < 1) {
         return HttpResponse.returnBadRequestResponse(
@@ -1523,6 +1607,12 @@ export default class RoomController {
         );
       }
 
+      let price = roomData.price;
+      let bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
+      let deposit = Number(price) / 2;
+      let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+      let total = Number(price) + Number(bail);
+
       const floorData = await floorModel
         .findOne({ rooms: roomId })
         .populate("rooms")
@@ -1569,175 +1659,163 @@ export default class RoomController {
         .findOneAndUpdate({ _id: userData._id }, userUpdateData, { new: true })
         .exec();
 
-      const bankData = await bankingModel.findOne({_id: bankingId}).lean().exec();
+      const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
 
-      {
-        //order, transaction, bill of deposit
-        const orderDataDeposit = await orderModel.create({
-          user: userData._id,
-          job: resData._id,
-          isCompleted: true,
-          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: deposit,
-          type: "deposit",
-          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
-        });
+      //order, transaction, bill of deposit
+      const orderDataDeposit = await orderModel.create({
+        user: userData._id,
+        job: resData._id,
+        isCompleted: true,
+        description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: deposit,
+        type: "deposit",
+        expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+      });
 
-        resData = await jobModel.findOneAndUpdate(
-          { _id: resData._id },
-          {
-            isCompleted: orderDataDeposit.isCompleted,
-            $addToSet: { orders: orderDataDeposit._id },
-            currentOrder: orderDataDeposit._id,
-          },
-          { new: true }
-        );
+      resData = await jobModel.findOneAndUpdate(
+        { _id: resData._id },
+        {
+          isCompleted: orderDataDeposit.isCompleted,
+          $addToSet: { orders: orderDataDeposit._id },
+          currentOrder: orderDataDeposit._id,
+        },
+        { new: true }
+      );
 
 
-        await transactionsModel.create({
-          user: userData._id,
-          keyPayment: "JKHASDKFJHAS", // note
-          keyOrder: orderDataDeposit.keyOrder,
-          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: orderDataDeposit.amount,
-          status: "success",
-          paymentMethod: "cash",
-          order: orderDataDeposit._id,
-          banking: bankingId, // note
-          type: "deposit",
-          motel: motelRoomData._id,
-          room: roomData._id,
-        });
+      await transactionsModel.create({
+        user: userData._id,
+        keyPayment: getRandomHex2(),
+        keyOrder: orderDataDeposit.keyOrder,
+        description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: orderDataDeposit.amount,
+        status: "success",
+        paymentMethod: "cash",
+        order: orderDataDeposit._id,
+        banking: bankId,
+        type: "deposit",
+        motel: motelRoomData._id,
+        room: roomData._id,
+      });
 
-        await billModel.create({
-          order: orderDataDeposit._id,
-          idBill: orderDataDeposit.keyOrder,
-          dateBill: moment().format("DD/MM/YYYY"),
-          nameMotel: motelRoomData.name,
-          addressMotel: motelRoomData.address.address,
-          nameRoom: roomData.name,
+      await billModel.create({
+        order: orderDataDeposit._id,
+        idBill: orderDataDeposit.keyOrder,
+        dateBill: moment().format("DD/MM/YYYY"),
+        nameMotel: motelRoomData.name,
+        addressMotel: motelRoomData.address.address,
+        nameRoom: roomData.name,
 
-          nameUser: userData.lastName + " " + userData.firstName,
-          phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
-          addressUser: userData.address,
-          emailUser: userData.email,
+        nameUser: userData.lastName + " " + userData.firstName,
+        phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+        addressUser: userData.address,
+        emailUser: userData.email,
 
-          nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
-          emailOwner: motelRoomData.owner.email,
-          phoneOwner: 
-            motelRoomData.owner.phoneNumber.countryCode 
-            + motelRoomData.owner.phoneNumber.number,
-          addressOwner: motelRoomData.owner.address,
-          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+        nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+        emailOwner: motelRoomData.owner.email,
+        phoneOwner: 
+          motelRoomData.owner.phoneNumber.countryCode 
+          + motelRoomData.owner.phoneNumber.number,
+        addressOwner: motelRoomData.owner.address,
+        nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+        numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+        nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
 
-          totalAll: orderDataDeposit.amount.toFixed(2),
-          totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
-          totalTaxAll: 0,
-          typeTaxAll: 0,
+        totalAll: orderDataDeposit.amount.toFixed(2),
+        totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
+        totalTaxAll: 0,
+        typeTaxAll: 0,
 
-          description: orderDataDeposit.description,
+        description: orderDataDeposit.description,
 
-          user: userData._id,
-          motel: motelRoomData._id,
-          roomRented: roomData._id,
+        user: userData._id,
+        motel: motelRoomData._id,
+        roomRented: roomData._id,
 
-          type: "deposit",
-        });
-      }
+        type: "deposit",
+      });
 
-      {
-        //order afterCheckInCost
-        const orderDataAfterCheckInCost = await orderModel.create({
-          user: resData.user,
-          job: resData._id,
-          isCompleted: true,
-          description: `Tiền thanh toán khi nhận phòng tháng 
-          ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: resData.afterCheckInCost,
-          type: "afterCheckInCost",
-          expireTime: moment().add(7, "days").endOf("day").toDate(),
-        });
+      //order afterCheckInCost
+      const orderDataAfterCheckInCost = await orderModel.create({
+        user: resData.user,
+        job: resData._id,
+        isCompleted: true,
+        description: `Tiền thanh toán khi nhận phòng tháng 
+        ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: resData.afterCheckInCost,
+        type: "afterCheckInCost",
+        expireTime: moment().add(7, "days").endOf("day").toDate(),
+      });
 
-        resData = await jobModel.findOneAndUpdate(
-          { _id: resData._id },
-          {
-            $addToSet: { orders: orderDataAfterCheckInCost._id },
-            currentOrder: orderDataAfterCheckInCost._id,
-          },
-          { new: true }
-        );
-        
-        await transactionsModel.create({
-          user: userData._id,
-          keyPayment: "JKHASDKFJHAS", // note
-          keyOrder: orderDataAfterCheckInCost.keyOrder,
-          description:  `Tiền thanh toán khi nhận phòng tháng 
-          ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: orderDataAfterCheckInCost.amount,
-          status: "success",
-          paymentMethod: "cash",
-          order: orderDataAfterCheckInCost._id,
-          banking: bankingId, // note
-          type: "afterCheckInCost",
-          motel: motelRoomData._id,
-          room: roomData._id,
-        });
+      resData = await jobModel.findOneAndUpdate(
+        { _id: resData._id },
+        {
+          $addToSet: { orders: orderDataAfterCheckInCost._id },
+          currentOrder: orderDataAfterCheckInCost._id,
+        },
+        { new: true }
+      );
+      
+      await transactionsModel.create({
+        user: userData._id,
+        keyPayment: getRandomHex2(), 
+        keyOrder: orderDataAfterCheckInCost.keyOrder,
+        description:  `Tiền thanh toán khi nhận phòng tháng 
+        ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        amount: orderDataAfterCheckInCost.amount,
+        status: "success",
+        paymentMethod: "cash",
+        order: orderDataAfterCheckInCost._id,
+        banking: bankId,
+        type: "afterCheckInCost",
+        motel: motelRoomData._id,
+        room: roomData._id,
+      });
 
-        await billModel.create({
-          order: orderDataAfterCheckInCost._id,
-          idBill: "KHLASDJFDS",
-          dateBill: moment().format("DD/MM/YYYY"),
-          nameMotel: motelRoomData.name,
-          addressMotel: motelRoomData.address.address,
-          nameRoom: roomData.name,
+      await billModel.create({
+        order: orderDataAfterCheckInCost._id,
+        idBill: orderDataAfterCheckInCost.keyOrder,
+        dateBill: moment().format("DD/MM/YYYY"),
+        nameMotel: motelRoomData.name,
+        addressMotel: motelRoomData.address.address,
+        nameRoom: roomData.name,
 
-          nameUser: userData.lastName + " " + userData.firstName,
-          phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
-          addressUser: userData.address,
-          emailUser: userData.email,
+        nameUser: userData.lastName + " " + userData.firstName,
+        phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+        addressUser: userData.address,
+        emailUser: userData.email,
 
-          nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
-          emailOwner: motelRoomData.owner.email,
-          phoneOwner: 
-            motelRoomData.owner.phoneNumber.countryCode 
-            + motelRoomData.owner.phoneNumber.number,
-          addressOwner: motelRoomData.owner.address,
-          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+        nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+        emailOwner: motelRoomData.owner.email,
+        phoneOwner: 
+          motelRoomData.owner.phoneNumber.countryCode 
+          + motelRoomData.owner.phoneNumber.number,
+        addressOwner: motelRoomData.owner.address,
+        nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+        numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+        nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
 
-          totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
-          totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
-          totalTaxAll: 0,
-          typeTaxAll: 0,
+        totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
+        totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
+        totalTaxAll: 0,
+        typeTaxAll: 0,
 
-          description: orderDataAfterCheckInCost.orderData,
+        description: orderDataAfterCheckInCost.orderData,
 
-          user: userData._id,
-          motel: motelRoomData._id,
-          roomRented: roomData._id,
+        user: userData._id,
+        motel: motelRoomData._id,
+        roomRented: roomData._id,
 
-          type: "afterCheckInCost",
-        });
-      }
-
-      //Kiểm tra thời gian checkIn đã nằm ở tháng trước chưa
-      // - Khác tháng: tạo hết tất cả order đã qua
-      // + Kiểm tra thanh toán tháng vừa rồi hay chưa
-      // - Cùng tháng: lên lịch tạo order đầu tiên
+        type: "afterCheckInCost",
+      });
 
       //create history monthly order
       
       if(checkInDay.clone().year() < timeMoment.clone().year()) {
         let monthPlus: number = 0;
-        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone())) {
+        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
           //create order
           let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-          // if(checkInDay.clone().add(monthPlus, "months").startOf("months").isSame(checkInDay.clone().startOf("months"))) {
-          //   startTime = checkInDay.clone().startOf("days");
-          // }
 
           //first month
           if(monthPlus === 0) {
@@ -1746,11 +1824,12 @@ export default class RoomController {
           let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
 
           let orderDataMonthly = await createOrderHistory(
-            resData, //job
+            resData,
             roomData,
             motelRoomData,
             startTime,
-            endTime
+            endTime,
+            bankId,
           );
 
           await jobModel.findOneAndUpdate(
@@ -1778,6 +1857,47 @@ export default class RoomController {
       } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
         if (checkInDay.clone().month() <  timeMoment.clone().month()) {
           // tạo order trước đó
+          let monthPlus: number = 0;
+          while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+            //create order
+            let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+
+            //first month
+            if(monthPlus === 0) {
+              startTime = checkInDay.clone().startOf("days");
+            }
+            let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+
+            let orderDataMonthly = await createOrderHistory(
+              resData,
+              roomData,
+              motelRoomData,
+              startTime,
+              endTime,
+              bankId,
+            );
+
+            await jobModel.findOneAndUpdate(
+              { _id: resData._id },
+              {
+                $addToSet: { orders: orderDataMonthly._id },
+                currentOrder: orderDataMonthly._id,
+                status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+              }
+            );
+
+            monthPlus++;
+          }
+
+          //tính cho tháng hiện tại vào đầu tháng sau
+          await global.agendaInstance.agenda.schedule(
+            timeMoment.clone()
+              .startOf("month")
+              .add(1, "months")
+              .toDate(),
+            "CreateOrderForNextMonth",
+            { jobId: resData._id }
+          );
 
         } else {
           //không cần tạo lịch sử hóa đơn
@@ -1836,7 +1956,7 @@ export default class RoomController {
           { _id: resData._id },
           {
             isCompleted: true,
-            status: "pendingActivated",
+            status: "pendingMonthlyPayment",
           },
           { new: true }
         )
@@ -1870,11 +1990,6 @@ export default class RoomController {
       //     });
       //   }
       // }
-
-
-
-      
-
 
       // passport.authenticate("local", { session: false }, async (err, rs) => {
       //   req.body.phoneNumber = {
@@ -2616,6 +2731,7 @@ async function createOrderHistory(
   motelRoomData: any,
   startTime: moment.Moment,
   endTime: moment.Moment,
+  bankId: string,
 ): Promise<any> {
   const { 
     order: orderModel, 
@@ -2691,14 +2807,14 @@ async function createOrderHistory(
 
   const transactionsData = await transactionsModel.create({
     user: jobData.user,
-    keyPayment: orderData.keyOrder,
+    keyPayment: getRandomHex2(),
     keyOrder: orderData.keyOrder,
     description: orderData.description,
     amount: orderData.amount,
     status: "success",
     paymentMethod: "cash",
     order: orderData._id,
-    banking: null, //note
+    banking: bankId,
     type: "monthly",
     motel: motelRoomData._id,
     room: roomData._id,
@@ -2753,10 +2869,8 @@ async function createOrderHistory(
   });
 
   const userData = await userModel.findOne({ _id: jobData.user }).lean().exec();
-  console.log({ userData });
 
   const bankData = await BankingModel.findOne({ _id: transactionsData.banking }).lean().exec();
-  console.log({ bankData });
 
   await billModel.create({
     order: orderData._id,
@@ -2767,6 +2881,7 @@ async function createOrderHistory(
     nameRoom: roomData.name,
 
     nameUser: userData.lastName + " " + userData.firstName,
+
     phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
     addressUser: userData.address,
     emailUser: userData.email,
@@ -2808,3 +2923,23 @@ async function createOrderHistory(
   
   return orderData;
 }
+
+const getRandomInt = (min, max) =>
+  Math.floor(Math.random() * (max - min)) + min;
+
+const getRandomString = (length, base) => {
+  let result = '';
+  const baseLength = base.length;
+
+  for (let i = 0; i < length; i++) {
+    const randomIndex = getRandomInt(0, baseLength);
+    result += base[randomIndex];
+  }
+
+  return result;
+};
+const getRandomHex2 = () => {
+  const baseString = '0123456789ABCDEF';
+  const ma = `${getRandomString(8, baseString)}`;
+  return ma;
+};
