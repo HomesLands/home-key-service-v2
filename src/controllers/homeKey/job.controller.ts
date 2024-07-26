@@ -1075,7 +1075,7 @@ export default class JobController {
     try {
       const data = req.body;
       console.log({ data });
-      console.log("ahsdfkjhas", req["userId"]);
+      // console.log("ahsdfkjhas", req["userId"]);
       let images = [];
 
       for (let i = 0; i < data.length; i++) {
@@ -1094,9 +1094,10 @@ export default class JobController {
         );
       }
 
-      let resData = await JobController.getJob(req.params.id, {
-        user: mongoose.Types.ObjectId(req["userId"]),
-      });
+      // let resData = await JobController.getJob(req.params.id, {
+      //   user: mongoose.Types.ObjectId(req["userId"]),
+      // });
+      let resData = await JobController.getJob(req.params.id);
 
       if (resData && resData.error) {
         return HttpResponse.returnBadRequestResponse(
