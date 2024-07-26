@@ -5548,18 +5548,19 @@ export default class EnergyController {
       // }
 
 
-      const roomData = await roomModel.findOne({_id: "66914b45f876f18c3c23fccf"});
-      let price = roomData.price;
-      let bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
-      let deposit = Number(price) / 2;
-      let afterCheckInCost = Number(price) * 0.5 + Number(bail);
-      let total = Number(price) + Number(bail);
+      // const roomData = await roomModel.findOne({_id: "66914b45f876f18c3c23fccf"});
+      // let price = roomData.price;
+      // let bail =  roomData.depositPrice === 0 ? roomData.price : roomData.depositPrice;
+      // let deposit = Number(price) / 2;
+      // let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+      // let total = Number(price) + Number(bail);
 
-      console.log({price});
-      console.log({bail});
-      console.log({deposit});
-      console.log({afterCheckInCost});
-      console.log({total});
+      // console.log({price});
+      // console.log({bail});
+      // console.log({deposit});
+      // console.log({afterCheckInCost});
+      // console.log({total});
+      console.log(5/3)
 
       // const a = moment("24/07/2024", "DD/MM/YYYY").startOf("months");
       // const b = moment("24/08/2024", "DD/MM/YYYY").startOf("months");
