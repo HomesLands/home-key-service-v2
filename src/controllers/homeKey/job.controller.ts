@@ -1075,7 +1075,7 @@ export default class JobController {
     try {
       const data = req.body;
       console.log({ data });
-      console.log("ahsdfkjhas", req["userId"]);
+      // console.log("ahsdfkjhas", req["userId"]);
       let images = [];
 
       for (let i = 0; i < data.length; i++) {
@@ -1094,9 +1094,10 @@ export default class JobController {
         );
       }
 
-      let resData = await JobController.getJob(req.params.id, {
-        user: mongoose.Types.ObjectId(req["userId"]),
-      });
+      // let resData = await JobController.getJob(req.params.id, {
+      //   user: mongoose.Types.ObjectId(req["userId"]),
+      // });
+      let resData = await JobController.getJob(req.params.id);
 
       if (resData && resData.error) {
         return HttpResponse.returnBadRequestResponse(
@@ -2183,21 +2184,22 @@ export default class JobController {
     const { job: jobModel } = global.mongoModel;
     try {
       const idRoom = req.params.idRoom;
+      const isDeleted = req.query.isDeleted;
       console.log({ idRoom });
+      console.log({ isDeleted });
 
-      const resData = await jobModel.find({
-        room: mongoose.Types.ObjectId(idRoom),
-      });
+      let resData = [];
+      if(isDeleted === "true") {
+        resData = await jobModel.find({
+          room: mongoose.Types.ObjectId(idRoom),
+          isDeleted: false,
+        });
+      } else if(isDeleted === "false") {
+        resData = await jobModel.find({
+          room: mongoose.Types.ObjectId(idRoom),
+        });
+      }
 
-      console.log({ resData });
-
-      // if (resData && resData.error) {
-      //   return HttpResponse.returnBadRequestResponse(
-      //     res,
-      //     resData.errors[0].errorMessage
-      //   );
-      // }
-      // const resData = "hihi";
       return HttpResponse.returnSuccessResponse(res, resData);
     } catch (e) {
       next(e);

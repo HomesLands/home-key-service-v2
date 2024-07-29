@@ -5528,6 +5528,9 @@ export default class EnergyController {
           notification: notificationModel,
         } = global.mongoModel;
 
+        const a = await JobController.getJob("66a355d01675bb3ee844f7b1");
+        console.log({a})
+
         // await NotificationController.createNotification({
         //   title: "Thông báo duyệt thanh toán cọc",
         //   content: `test`,
