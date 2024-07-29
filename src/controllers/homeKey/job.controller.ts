@@ -2192,11 +2192,12 @@ export default class JobController {
       if(isDeleted === "true") {
         resData = await jobModel.find({
           room: mongoose.Types.ObjectId(idRoom),
-          isDeleted: false,
+          isDeleted: true,
         });
       } else if(isDeleted === "false") {
         resData = await jobModel.find({
           room: mongoose.Types.ObjectId(idRoom),
+          isDeleted: false,
         });
       }
 
