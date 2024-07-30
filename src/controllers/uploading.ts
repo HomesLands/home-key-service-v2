@@ -3,6 +3,13 @@ import ImageService from "../services/image";
 import HttpResponse from "../services/response";
 import cloudinary from "../utils/cloudinary";
 export default class UploadImgController {
+  /**
+   * @swagger
+   * tags:
+   *   - name: Uploading
+   *     description: Uploading Control APIs
+   */
+
   static async postUpload(
     req: Request,
     res: Response,
@@ -393,6 +400,37 @@ export default class UploadImgController {
     }
   }
 
+  /**
+   * @swagger
+   * /v1/uploading/imgs/{id}/job:
+   *   post:
+   *     description: Upload Image For Job
+   *     tags: [Uploading]
+   *     produces:
+   *       - application/json
+   *       - multipart/form-data
+   *     parameters:
+   *       - name: id
+   *         in: path
+   *         required:  true
+   *         type: string
+   *         description: jobId
+   *       - name: file
+   *         in: formData
+   *         type: file
+   *         description: file for job
+   *     responses:
+   *       200:
+   *         description: Success
+   *       400:
+   *         description: Invalid request params
+   *       401:
+   *         description: Unauthorized
+   *       404:
+   *         description: Resource not found
+   *     security:
+   *       - auth: []
+   */
   static async postUploadImgsForJob(
     req: Request,
     res: Response,
@@ -403,7 +441,6 @@ export default class UploadImgController {
       const { job: jobModel } = global.mongoModel;
 
       let { id: id } = req.params;
-      console.log({id});
 
       const imageService = new ImageService("local", false);
 
@@ -418,18 +455,16 @@ export default class UploadImgController {
       }
 
       const { body: data } = req;
-      console.log("check data from req", data);
-      console.log("check data from req", data.formData);
 
-      console.log("fill", req["files"]);
-      console.log("fillaa", req["files"].file);
-
+      console.log("upp", req["files"])
+      console.log("upp", req["files"].file)
 
       let resDataS = {};
       // Upload image
       if (req["files"]) {
         data.images = {};
         let listImgId = [];
+        let listImgUrl = [];
         const uploadResults = await imageService.uploads(req["files"].file);
         if (uploadResults.error) {
           return HttpResponse.returnInternalServerResponseWithMessage(
@@ -440,11 +475,13 @@ export default class UploadImgController {
 
         for( let i = 0; i < uploadResults.length; i++) {
           listImgId.push(uploadResults[i].imageId);
+          listImgUrl.push(uploadResults[i].imageUrl);
         }
 
         resDataS = await jobModel.findOneAndUpdate(
           { _id: id },
-          { images: listImgId }
+          { images: listImgId },
+          { new: true}
         )
           .lean()
           .exec();
