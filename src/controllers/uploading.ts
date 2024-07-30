@@ -417,10 +417,9 @@ export default class UploadImgController {
    *         description: jobId
    *       - name: files
    *         in: formData
-   *         type: array
-   *         items:
-   *           type: file
-   *         description: files for job
+   *         required:  true
+   *         type: string
+   *         description: files for job,  current inactive, use postman in form-data to test
    *     responses:
    *       200:
    *         description: Success
@@ -456,6 +455,7 @@ export default class UploadImgController {
         );
       }
 
+      console.log("upp", req.body)
       console.log("upp", req["files"])
       console.log("upp", req["files"].file)
 

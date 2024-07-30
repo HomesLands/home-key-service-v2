@@ -1141,6 +1141,7 @@ export default class RoomController {
         afterCheckInCost: afterCheckInCost,
         deposit: deposit,
         rentalPeriod: rentalPeriod,
+        status: "pendingActivated",
         
         fullName: userData.lastName + " " + userData.firstName,
         phoneNumber: userData.phoneNumber.countryCode +  userData.phoneNumber.number,
@@ -1838,6 +1839,7 @@ export default class RoomController {
               $addToSet: { orders: orderDataMonthly._id },
               currentOrder: orderDataMonthly._id,
               status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+              isActived: true,
             }
           );
 
@@ -1883,6 +1885,7 @@ export default class RoomController {
                 $addToSet: { orders: orderDataMonthly._id },
                 currentOrder: orderDataMonthly._id,
                 status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+                isActived: true,
               }
             );
 
@@ -1957,6 +1960,7 @@ export default class RoomController {
           {
             isCompleted: true,
             status: "pendingMonthlyPayment",
+            isActived: true,
           },
           { new: true }
         )
