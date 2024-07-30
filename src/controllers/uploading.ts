@@ -393,6 +393,69 @@ export default class UploadImgController {
     }
   }
 
+  static async postUploadImgsForJob(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      //Init models
+      const { job: jobModel } = global.mongoModel;
+
+      let { id: id } = req.params;
+      console.log({id});
+
+      const imageService = new ImageService("local", false);
+
+      // Process form data
+      const processDataInfo = await imageService.processFormData(req, res);
+
+      if (processDataInfo && processDataInfo.error) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          processDataInfo.error
+        );
+      }
+
+      const { body: data } = req;
+      console.log("check data from req", data);
+      console.log("check data from req", data.formData);
+
+      console.log("fill", req["files"]);
+      console.log("fillaa", req["files"].file);
+
+
+      let resDataS = {};
+      // Upload image
+      if (req["files"]) {
+        data.images = {};
+        let listImgId = [];
+        const uploadResults = await imageService.uploads(req["files"].file);
+        if (uploadResults.error) {
+          return HttpResponse.returnInternalServerResponseWithMessage(
+            res,
+            uploadResults.message
+          );
+        }
+
+        for( let i = 0; i < uploadResults.length; i++) {
+          listImgId.push(uploadResults[i].imageId);
+        }
+
+        resDataS = await jobModel.findOneAndUpdate(
+          { _id: id },
+          { images: listImgId }
+        )
+          .lean()
+          .exec();
+      }
+
+      return HttpResponse.returnSuccessResponse(res, resDataS);
+    } catch (e) {
+      next(e);
+    }
+  }
+
   static async postUploadImgPayDeposit(
     req: Request,
     res: Response,
