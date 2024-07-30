@@ -35,6 +35,10 @@ authRoute
   .post(UploadImgController.postUploadImgByRoomIdTransaction);
 
 authRoute
+  .route("/imgs/:id/job")
+  .post(UploadImgController.postUploadImgsForJob);
+
+authRoute
   .route("/img/:id/payDeposit")
   .post(UploadImgController.postUploadImgPayDeposit);
 
