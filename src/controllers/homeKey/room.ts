@@ -1960,6 +1960,7 @@ export default class RoomController {
           {
             isCompleted: true,
             status: "pendingMonthlyPayment",
+            isActived: true,
           },
           { new: true }
         )
