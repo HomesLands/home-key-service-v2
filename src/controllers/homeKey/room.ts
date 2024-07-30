@@ -1141,6 +1141,7 @@ export default class RoomController {
         afterCheckInCost: afterCheckInCost,
         deposit: deposit,
         rentalPeriod: rentalPeriod,
+        status: "pendingActivated",
         
         fullName: userData.lastName + " " + userData.firstName,
         phoneNumber: userData.phoneNumber.countryCode +  userData.phoneNumber.number,
