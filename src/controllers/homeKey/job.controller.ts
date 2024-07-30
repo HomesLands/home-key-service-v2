@@ -2181,7 +2181,10 @@ export default class JobController {
     res: Response,
     next: NextFunction
   ): Promise<any> {
-    const { job: jobModel } = global.mongoModel;
+    const { 
+      job: jobModel,
+      image: imageModel,
+    } = global.mongoModel;
     try {
       const idRoom = req.params.idRoom;
       const isDeleted = req.query.isDeleted;
@@ -2193,12 +2196,29 @@ export default class JobController {
         resData = await jobModel.find({
           room: mongoose.Types.ObjectId(idRoom),
           isDeleted: true,
-        });
+        }).lean().exec();
       } else if(isDeleted === "false") {
         resData = await jobModel.find({
           room: mongoose.Types.ObjectId(idRoom),
           isDeleted: false,
-        });
+        }).lean().exec();
+      }
+
+      if(resData.length > 0) {
+        for(let i = 0; i < resData.length; i++) {
+          if (resData[i].images && (resData[i].images.length > 0)) {
+            let images = [];
+
+            for(let j = 0; j < resData[i].images.length; j++) {
+              const dataimg = await imageModel.findOne({
+                _id: resData[i].images[j],
+              });
+              if (dataimg) {
+                images.push(await helpers.getImageUrl(dataimg));
+              } 
+            }
+          }
+        }
       }
 
       return HttpResponse.returnSuccessResponse(res, resData);
