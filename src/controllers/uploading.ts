@@ -415,10 +415,12 @@ export default class UploadImgController {
    *         required:  true
    *         type: string
    *         description: jobId
-   *       - name: file
+   *       - name: files
    *         in: formData
-   *         type: file
-   *         description: file for job
+   *         type: array
+   *         items:
+   *           type: file
+   *         description: files for job
    *     responses:
    *       200:
    *         description: Success
@@ -454,15 +456,12 @@ export default class UploadImgController {
         );
       }
 
-      const { body: data } = req;
-
       console.log("upp", req["files"])
       console.log("upp", req["files"].file)
 
       let resDataS = {};
       // Upload image
       if (req["files"]) {
-        data.images = {};
         let listImgId = [];
         let listImgUrl = [];
         const uploadResults = await imageService.uploads(req["files"].file);
