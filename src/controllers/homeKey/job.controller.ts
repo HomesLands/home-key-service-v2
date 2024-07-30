@@ -2217,9 +2217,13 @@ export default class JobController {
                 images.push(await helpers.getImageUrl(dataimg));
               } 
             }
+            resData[i].images = images;
           }
+          
         }
       }
+
+      console.log({resData})
 
       return HttpResponse.returnSuccessResponse(res, resData);
     } catch (e) {
