@@ -1839,6 +1839,7 @@ export default class RoomController {
               $addToSet: { orders: orderDataMonthly._id },
               currentOrder: orderDataMonthly._id,
               status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+              isActived: true,
             }
           );
 
@@ -1884,6 +1885,7 @@ export default class RoomController {
                 $addToSet: { orders: orderDataMonthly._id },
                 currentOrder: orderDataMonthly._id,
                 status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+                isActived: true,
               }
             );
 
