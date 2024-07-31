@@ -789,21 +789,21 @@ export default class RoomController {
               )
               .exec();
           }
-          await global.agendaInstance.agenda.schedule(
-            moment()
-              .endOf("month")
-              .toDate(),
-            "CheckOrderStatus",
-            { orderId: JobData.currentOrder._id }
-          );
-          await global.agendaInstance.agenda.schedule(
-            moment()
-              .startOf("month")
-              .add(1, "months")
-              .toDate(),
-            "CreateOrder",
-            { jobId: JobData._id }
-          );
+          // await global.agendaInstance.agenda.schedule(
+          //   moment()
+          //     .endOf("month")
+          //     .toDate(),
+          //   "CheckOrderStatus",
+          //   { orderId: JobData.currentOrder._id }
+          // );
+          // await global.agendaInstance.agenda.schedule(
+          //   moment()
+          //     .startOf("month")
+          //     .add(1, "months")
+          //     .toDate(),
+          //   "CreateOrder",
+          //   { jobId: JobData._id }
+          // );
         }
       }
     } else {
