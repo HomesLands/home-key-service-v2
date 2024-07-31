@@ -35,7 +35,7 @@ export class Notification extends Basic {
   tag: string;
 
   @prop()
-  contentTag!: Ref<Transactions | Job>;
+  contentTag!: Ref<Transactions | Job | Order | payDepositList | null>;
 
   // Virtual field for conditional population
   public get conditionalContentTag() {
