@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import * as lodash from "lodash";
 import * as moment from "moment";
 import * as passport from "passport";
+import * as excelJS from "exceljs";
+import * as reader from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { helpers, jwtHelper, normalizeError } from "../../utils";
 
@@ -12,6 +16,18 @@ import FloorController from "./floor.controller";
 import EnergyController from "./energy.controller";
 import { CANCELLED } from "dns";
 import room from "services/agenda/jobs/room";
+
+interface UploadedFile {
+  name: string;
+  data: Buffer;
+  size: number;
+  encoding: string;
+  tempFilePath: string;
+  truncated: boolean;
+  mimetype: string;
+  md5: string;
+  mv: Function;
+}
 
 export default class RoomController {
   /**
@@ -868,6 +884,103 @@ export default class RoomController {
     );
   }
 
+  static async listRoomAbleRentByIdMotel(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        motelRoom: motelRoomModel,
+        floor: floorModel,
+        room: roomModel,
+        transactions: transactionsModel,
+      } = global.mongoModel;
+
+      const idMotel = req.params.id;
+      const motelRoomData = await motelRoomModel.findOne({_id: idMotel}).populate("floors").lean().exec();
+
+      if(!motelRoomData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tòa nhà không tồn tại"
+        )
+      }
+
+      const floorData = motelRoomData.floors;
+      if(floorData.length < 1) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tòa nhà chưa có tầng nào"
+        );
+      }
+      let listRoomId : string[] = [];
+      for(let i = 0; i < floorData.length; i++) {
+        if(floorData[i].rooms) {
+          console.log('dd', floorData[i].rooms)
+          listRoomId = listRoomId.concat(floorData[i].rooms);
+        }
+      }
+
+      console.log({listRoomId})
+      let listRoomData  = [];
+      for(let i = 0; i < listRoomId.length; i++) {
+        let roomData = await roomModel.findOne({_id: listRoomId[i]}).lean().exec();
+        if(roomData) {
+          if(roomData.status === "available") {
+            let transactionsData = await transactionsModel.findOne({
+              type: "deposit",
+              isDeleted: false,
+              room: roomData._id,
+              status: "waiting",
+            });
+            if(!transactionsData) {
+              let floorDataT = await floorModel.findOne({
+                rooms: roomData._id,
+              }).lean().exec();
+              roomData.floorName = floorDataT.name;
+              roomData.floorKey = floorDataT.key;
+              listRoomData.push(roomData);
+            }
+          }
+        }
+      }
+
+      console.log({listRoomData})
+      const dataExport = listRoomData.map((room) => ({
+        name: room.name,
+        id: room._id,
+        floorName: room.floorName,
+        minimumMonths: room.minimumMonths ? room.minimumMonths: 0,
+      }))
+
+      console.log({dataExport})
+
+      const workbook = new excelJS.Workbook(); 
+      const worksheet = workbook.addWorksheet("Rooms");
+
+      // Define columns in the worksheet 
+      worksheet.columns = [ 
+      { header: "TÊN PHÒNG", key: "name", width: 15 }, 
+      { header: "ID PHÒNG", key: "id", width: 15 }, 
+      { header: "SỐ THÁNG THUÊ TỐI THIỂU", key: "minimumMonths", width: 45 }, 
+      { header: "TẦNG", key: "floorName", width: 15 },
+      ];
+
+      // Add data to the worksheet 
+      dataExport.forEach(room => { worksheet.addRow(room); });
+
+      // Set up the response headers 
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); 
+      res.setHeader("Content-Disposition", "attachment; filename=" +`${motelRoomData.name} - Rooms - available.xlsx`);
+
+      // Write the workbook to the response object 
+      workbook.xlsx.write(res).then(() => res.end());
+    } catch (error) {
+      next(error);
+    }
+  }
+
   /**
    * @swagger
    * definitions:
@@ -1352,6 +1465,453 @@ export default class RoomController {
 
 
     } catch (error) {
+      next(error);
+    }
+  }
+
+
+
+  /** 
+  * @swagger
+  * /v1/homeKey/room/quickDepositManyRoomsByAdmin/:
+  *   post:
+  *     description: Create many job by admin
+  *     tags: [Room]
+  *     produces:
+  *       - application/json
+  *       - multipart/form-data
+  *     parameters: 
+  *       - in: formData
+  *         name: file
+  *         type: file
+  *         required: true
+  *         description: Excel file
+  *       - in: formData
+  *         name: bankId
+  *         required: true
+  *         type: string
+  *         description: ID banking
+  *     responses:
+  *       200:
+  *         description: Success
+  *       400:
+  *         description: Invalid request params
+  *       401:
+  *         description: Unauthorized
+  *       404:
+  *         description: Resource not found
+  *     security:
+  *       - auth: []
+  */
+  static async quickDepositManyRoomsByAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        user: userModel,
+        room: roomModel,
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+        transactions: transactionsModel,
+        job: jobModel,
+        order: orderModel,
+        banking: bankingModel,
+        bill: billModel,
+      } = global.mongoModel;
+
+      // console.log("req", req["files"]);
+
+      if(!req["files"] || !req["files"].file) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Vui lòng tải file lên"
+        )
+      }
+
+      const bankId = req.body.bankId;
+
+      console.log("bankId", bankId);
+
+      const file = req["files"].file as UploadedFile;
+
+      const data = reader.read(file.data, {type: 'buffer'});
+
+      const sheetName = data.SheetNames[0];
+      const worksheet = data.Sheets[sheetName];
+      const dataN = reader.utils.sheet_to_json(worksheet);
+
+      const dataValidate: DataRow[] = reader.utils.sheet_to_json<DataRow>(worksheet, { defval: "" });
+      const validationErrors = await RoomController.validateDataFileExcel(dataValidate);
+
+      if (validationErrors.length > 0) {
+        const formattedErrors = convertErrorsToExcelFormat(validationErrors);
+        const ws = reader.utils.json_to_sheet(formattedErrors);
+        const validationWorkbook = reader.utils.book_new();
+        reader.utils.book_append_sheet(validationWorkbook, ws, 'ValidationErrors');
+
+        const excelBuffer = reader.write(validationWorkbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(excelBuffer);
+      }
+
+      //chuyển thành mảng, loại bỏ khoảng trắng đầu và cuối
+      const arrData = dataN.map((item) => Object.values(item).map(value => String(value).trim()));
+
+      // console.log({arrData})
+      
+      //Loại bỏ phần tử chứa khoảng trắng trong mỗi mảng con
+      const cleanArray = arrData.map(subArray => subArray.filter(item => item.trim() !== ''));
+      // console.log({cleanArray})
+
+      //note: check tạm qua bảng dữ liệu
+      // for(let i = 0; i < cleanArray.length; i++) {
+      //   if(cleanArray[i].length < 10) {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       "Vui lòng điền đủ dữ liệu cho bảng và upload lại dữ liệu"
+      //     );
+      //   }
+
+      //   const phoneNumber = cleanArray[i][6];
+      //   const phoneNumberObect = {
+      //     countryCode: "+84",
+      //     number: helpers.stripeZeroOut(phoneNumber),
+      //   };
+
+      //   const userData = await userModel.findOne({
+      //     phoneNumber: phoneNumberObect
+      //   }).lean().exec();
+
+      //   console.log({phoneNumberObect})
+
+      //   if(!userData) {
+      //     if(!(cleanArray[i].length === 11)) {
+      //       return HttpResponse.returnBadRequestResponse(
+      //         res,
+      //         `Hàng dữ liệu có STT: ${cleanArray[i][0]} của file dữ liệu chưa có tài khoản, vui lòng nhập đủ thông tin để tạo tài khoản mới`
+      //       );
+      //     }
+
+      //     const existingUserEmail = await userModel
+      //       .findOne({
+      //         email: cleanArray[i][9],
+      //         isDeleted: false,
+      //       })
+      //       .lean()
+      //       .exec();
+
+      //     if(existingUserEmail) {
+      //       return HttpResponse.returnBadRequestResponse(
+      //         res,
+      //         `Hàng dữ liệu STT: ${cleanArray[i][0]} chưa có tài khoản, email cung cấp đã tồn tại trong hệ thống, vui lòng nhập lại email khác`
+      //       );
+      //     }
+      //   } else {
+      //     if(userData.isLocked) {
+      //       return HttpResponse.returnBadRequestResponse(
+      //         res,
+      //         `Tài khoản của khách hàng dữ liệu có STT: ${cleanArray[i][0]} đã bị khóa, không thể đặt phòng`
+      //       );
+      //     }
+      //   }
+
+      //   const roomData = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+      //   if(!roomData) {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       `Id phòng của hàng dữ liệu có STT: ${cleanArray[i][0]} của file không chính xác, vui lòng kiểm tra lại`
+      //     );
+      //   }
+
+      //   if(roomData.status !== "available") {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       `Phòng của hàng dữ liệu có STT: ${cleanArray[i][0]} hiện không còn trống, vui lòng kiểm tra lại và chọn phòng khác`
+      //     );
+      //   }
+
+      //   if(roomData.name.trim() !== cleanArray[i][1].trim()) {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       `Vui lòng kiểm tra lại hàng dữ liệu có STT: ${cleanArray[i][0]}, tên phòng được tìm thấy và tên phòng được nhập trong bảng dữ liệu không trùng khớp nhau`
+      //     );
+      //   }
+
+      //   const floorData = await floorModel
+      //     .findOne({ rooms: roomData._id })
+      //     .populate("rooms")
+      //     .lean()
+      //     .exec();
+
+      //   if (!floorData) {
+      //     return HttpResponse.returnBadRequestResponse(res, `Tầng của phòng thuộc hàng dữ liệu có SST: ${cleanArray[i][0]} không hợp lệ`);
+      //   }
+
+      //   const motelRoomData = await motelRoomModel
+      //   .findOne({ floors: floorData._id })
+      //   .populate("floors owner address")
+      //   .lean()
+      //   .exec();
+
+      //   if (!motelRoomData) {
+      //     return HttpResponse.returnBadRequestResponse(res, `Tòa nhà của phòng thuộc hàng dữ liệu có SST: ${cleanArray[i][0]} không hợp lệ`);
+      //   }
+
+      //   const transactionsData = await transactionsModel.findOne({
+      //     room: roomData._id,
+      //     status: "waiting",
+      //     type: "deposit",
+      //     isDeleted: false,
+      //   }).lean().exec();
+
+      //   if(transactionsData) {
+      //     return HttpResponse.returnBadRequestResponse(
+      //       res,
+      //       `Phòng của hàng dữ liệu có STT: ${cleanArray[i][0]} đã có giao dịch cọc chưa được duyệt, vui lòng kiểm tra lại`
+      //     );
+      //   }
+      // }
+
+
+      //Bắt đầu tạo
+      for(let i = 0; i < cleanArray.length; i++) {
+        const phoneNumber = cleanArray[i][6];
+        const phoneNumberObect = {
+          countryCode: "+84",
+          number: helpers.stripeZeroOut(phoneNumber),
+        };
+
+        let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+        .lean()
+        .exec();
+
+        if(!userDataN) {
+          let dataSignUp = {
+            firstName: cleanArray[i][5],
+            lastName: cleanArray[i][4],
+            phoneNumber: phoneNumberObect,
+            email: cleanArray[i][9],
+            password: cleanArray[i][10],
+            confirmPassword: cleanArray[i][10],
+            role: ['customer'],
+          }
+
+          console.log("dataSignUp out", dataSignUp);
+          console.log({phoneNumber});
+
+          userDataN = await createAccountForUser(
+            dataSignUp,
+            res,
+            phoneNumber,
+          );
+        }
+
+        const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+
+        const floorDataN = await floorModel
+          .findOne({ rooms: roomDataN._id })
+          .populate("rooms")
+          .lean()
+          .exec();
+
+        const motelRoomDataN = await motelRoomModel
+          .findOne({ floors: floorDataN._id })
+          .populate("floors owner address")
+          .lean()
+          .exec();
+
+          console.log({motelRoomDataN})
+
+        let price = roomDataN.price;
+        let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
+        let deposit = Number(price) / 2;
+        let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+        let total = Number(price) + Number(bail);
+
+        let resData = await jobModel.create({
+          checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
+          user: userDataN._id,
+          room: roomDataN._id,
+          price: price,
+          bail: bail,
+          total: total,
+          afterCheckInCost: afterCheckInCost,
+          deposit: deposit,
+          // rentalPeriod: parseInt(cleanArray[i][8]),
+          rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
+          status: "pendingActivated",
+          
+          fullName: userDataN.lastName + " " + userDataN.firstName,
+          phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
+        });
+
+        let userUpdateData = {
+          $addToSet: {
+            jobs: resData._id,
+          },
+        };
+
+        //order, transaction, bill of deposit
+        const orderData = await orderModel.create({
+          user: userDataN._id,
+          job: resData._id,
+          isCompleted: true,
+          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: deposit,
+          type: "deposit",
+          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: orderData.isCompleted,
+            $addToSet: { orders: orderData._id },
+            currentOrder: orderData._id,
+          },
+          { new: true }
+        );
+
+        await transactionsModel.create({
+          user: userDataN._id,
+          keyPayment: getRandomHex2(),
+          keyOrder: orderData.keyOrder,
+          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderData.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderData._id,
+          banking: bankId,
+          type: "deposit",
+          motel: motelRoomDataN._id,
+          room: roomDataN._id,
+        });
+
+        const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+
+        await billModel.create({
+          order: orderData._id,
+          idBill: orderData.keyOrder,
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomDataN.name,
+          addressMotel: motelRoomDataN.address.address,
+          nameRoom: roomDataN.name,
+
+          nameUser: userDataN.lastName + " " + userDataN.firstName,
+          phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+          addressUser: userDataN.address,
+          emailUser: userDataN.email,
+
+          nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+          emailOwner: motelRoomDataN.owner.email,
+          phoneOwner: 
+            motelRoomDataN.owner.phoneNumber.countryCode 
+            + motelRoomDataN.owner.phoneNumber.number,
+          addressOwner: motelRoomDataN.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderData.amount.toFixed(2),
+          totalAndTaxAll: orderData.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderData.description,
+
+          user: userDataN._id,
+          motel: motelRoomDataN._id,
+          roomRented: roomDataN._id,
+
+          type: "deposit",
+        });
+
+        await userModel
+        .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
+        .exec();
+
+        await roomModel
+        .findOneAndUpdate(
+          { _id: roomDataN._id },
+          { status: "deposited", rentedBy: userDataN._id },
+          { new: true }
+        )
+        .exec();
+
+        const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
+          return room.status;
+        });
+  
+        await floorModel
+          .findOneAndUpdate(
+            { _id: floorDataN._id },
+            {
+              availableRoom: roomGroup["available"]
+                ? roomGroup["available"].length
+                : 0,
+              rentedRoom: roomGroup["rented"]
+                ? roomGroup["rented"].length
+                : 0,
+              depositedRoom: roomGroup["deposited"]
+                ? roomGroup["deposited"].length
+                : 0,
+            }
+          )
+          .exec();
+  
+        let updateData = {
+          availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
+          rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
+          depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
+        };
+  
+        await motelRoomModel
+          .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
+          .exec();
+  
+        await jobModel
+          .findOneAndUpdate(
+            { _id: resData._id },
+            {
+              isCompleted: true,
+              status: "pendingActivated",
+            },
+            { new: true }
+          )
+          .exec();
+  
+        const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+  
+        await NotificationController.createNotification({
+          title: "Thông báo kích hoạt hợp đồng",
+          content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+          ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+  
+          user: resData.user._id,
+          isRead: false,
+          type: "activeJob",
+          url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
+          tag: "Job",
+          contentTag: resData._id,
+        });
+  
+        await global.agendaInstance.agenda.schedule(
+          moment(resData.checkInTime)
+            .add(7, "days")
+            .endOf("day")
+            .toDate(),
+          "CheckJobStatus",
+          { jobId: resData._id }
+        );
+      }
+
+      return HttpResponse.returnSuccessResponse(res, "Hoàn thành tạo đặt cọc từ file");
+    } catch (error) {
+      // console.log({error});
       next(error);
     }
   }
@@ -2724,6 +3284,456 @@ export default class RoomController {
     }
   }
 
+  // static async validateDataFileExcel (
+  //   data: DataRow[],
+  // ): Promise<any> {
+  //   const errors = [];
+  //   try {
+  //     const {
+  //       room: roomModel,
+  //       user: userModel,
+  //       transactions: transactionsModel,
+  //       floor: floorModel,
+  //       motelRoom: motelRoomModel,
+  //     } = global.mongoModel;
+    
+  //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  //     const phoneRegex = /^[0-9]{9,10}$/;
+
+  //     for(let i = 0; i < data.length; i++) {
+  //       let rowErrors: { [key: string]: string } = {};
+    
+  //       const phoneNumber = data[i][' phone '];
+  //       const phoneNumberObect = {
+  //         countryCode: "+84",
+  //         number: helpers.stripeZeroOut(phoneNumber),
+  //       };
+
+  //       let userData = await userModel.findOne({phoneNumber: phoneNumberObect})
+  //         .lean()
+  //         .exec();
+  
+  //       if(!userData) {
+  //         if(data[i][' password ']) {
+  //           rowErrors.password = 'Tài khoản không tồn tại, vui lòng thêm mật khẩu để tạo tài khoản';            
+  //         }
+
+  //         const existingUserEmail = await userModel
+  //           .findOne({
+  //             email: data[i][' email '],
+  //             isDeleted: false,
+  //           })
+  //           .lean()
+  //           .exec();
+
+  //         if(existingUserEmail) {
+  //           rowErrors.email = 'Tài khoản không tồn tại, email cung cấp đã tồn tại trong hệ thống, vui lòng nhập email mới'
+  //         }
+  //       } else {
+  //         if(userData.isLocked) {
+  //           rowErrors.phone = 'Tài khoản đã bị khóa, vui lòng liên hệ quản trị viên';
+  //         }
+  //       }
+  //       let roomData = await roomModel.findOne({_id: data[i][' roomId ']}).lean().exec();
+
+  //       if(!roomData) {
+  //         rowErrors.roomId = 'Phòng không tồn tại';
+  //       } else {
+  //         if(roomData.name.trim() !== data[i][' roomName '].trim()) {
+  //           rowErrors.roomName = 'Tên phòng tìm thấy và tên phòng trong bảng dữ liệu không trùng nhau';
+  //         }
+  //         if(roomData.status !== "available") {
+  //           rowErrors.roomId = 'Phòng hiện không còn trống';
+  //         }
+
+  //         const floorData = await floorModel
+  //           .findOne({ rooms: roomData._id })
+  //           .populate("rooms")
+  //           .lean()
+  //           .exec();
+
+  //         if (!floorData) {
+  //           rowErrors.floor = 'Tầng của phòng không hợp lệ';
+  //         }
+
+  //         const motelRoomData = await motelRoomModel
+  //         .findOne({ floors: floorData._id })
+  //         .populate("floors owner address")
+  //         .lean()
+  //         .exec();
+
+  //         if (!motelRoomData) {
+  //           rowErrors.motel = 'Tòa nhà của phòng không hợp lệ';
+  //         }
+
+  //         const transactionsData = await transactionsModel.findOne({
+  //           room: roomData._id,
+  //           status: "waiting",
+  //           type: "deposit",
+  //           isDeleted: false,
+  //         }).lean().exec();
+
+  //         if(transactionsData) {
+  //           rowErrors.deposit = 'Phòng đã có giao dịch cọc trước đó, vui lòng kiểm tra lại'
+  //         }
+  //       }
+  
+  //       // Kiểm tra cột Họ và Tên
+  //       if (!data[i][' order ']) {
+  //         rowErrors.order = 'STT không được để trống';
+  //       }
+  //       if (!data[i][' roomName ']) {
+  //         rowErrors.roomName = 'Tên phòng không được để trống';
+  //       }
+  //       if (!data[i][' roomId ']) {
+  //         rowErrors.roomId = 'ID phòng không được để trống';
+  //       }
+  //       if (!data[i][' fullName ']) {
+  //         rowErrors.fullName = 'Họ và Tên không được để trống';
+  //       }
+  //       if (!data[i][' lastName ']) {
+  //         rowErrors.lastName = 'Họ không được để trống';
+  //       }
+  //       if (!data[i][' firstName ']) {
+  //         rowErrors.firstName = 'Tên không được để trống';
+  //       }
+  //       if (!data[i][' phone ']) {
+  //         rowErrors.phone = 'Số điện thoại không được để trống';
+  //       } else if (!phoneRegex.test(data[i][' phone '])) {
+  //         rowErrors.phone = 'Số điện thoại không hợp lệ';
+  //       }
+  //       if (!data[i][' rentalPeriod ']) {
+  //         rowErrors.rentalPeriod = 'Số tháng thuê không được để trống';
+  //       } else {
+  //         if(roomData) {
+  //           if(roomData.minimumMonths > parseInt(data[i][' rentalPeriod '])) {
+  //             rowErrors.rentalPeriod = 'Số tháng thuê không được nhỏ hơn số tháng thuê tối thiểu của phòng';
+  //           }
+  //         }
+  //       }
+  
+  //       // Kiểm tra cột Email
+  //       if (!data[i][' email ']) {
+  //         rowErrors.email = 'Email không được để trống';
+  //       } else if (!emailRegex.test(data[i][' email '])) {
+  //         rowErrors.email = 'Email không hợp lệ';
+  //       }
+  
+  //       // Kiểm tra cột Ngày tháng năm
+  //       if (!data[i][' checkInTime ']) {
+  //           rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
+  //       } else {
+  //           // Kiểm tra định dạng ngày tháng
+  //           const date = new Date(data[i][' checkInTime ']);
+  //           if (isNaN(date.getTime())) {
+  //               rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
+  //           }
+  //       }
+  
+  //       if (Object.keys(rowErrors).length > 0) {
+  //           errors.push({ row: i + 1, errors: rowErrors });
+  //       }
+  //     }
+  //     // data.forEach((row, index) => {
+  //     //     let rowErrors: { [key: string]: string } = {};
+    
+  //     //     const phoneNumber = row[' phone '];
+  //     //     const phoneNumberObect = {
+  //     //       countryCode: "+84",
+  //     //       number: helpers.stripeZeroOut(phoneNumber),
+  //     //     };
+
+        
+    
+  //     //     console.log({row})
+  //     //     // console.log(row['fullName'])
+  //     //     // console.log(row['roomId'])
+    
+  //     //     // Kiểm tra cột Họ và Tên
+  //     //     if (!row[' order ']) {
+  //     //       rowErrors.order = 'STT không được để trống';
+  //     //     }
+  //     //     if (!row[' roomName ']) {
+  //     //       rowErrors.roomName = 'Tên phòng không được để trống';
+  //     //     }
+  //     //     if (!row[' roomId ']) {
+  //     //       rowErrors.roomId = 'ID phòng không được để trống';
+  //     //     }
+  //     //     if (!row[' fullName ']) {
+  //     //       rowErrors.fullName = 'Họ và Tên không được để trống';
+  //     //     }
+  //     //     if (!row[' lastName ']) {
+  //     //       rowErrors.lastName = 'Họ không được để trống';
+  //     //     }
+  //     //     if (!row[' firstName ']) {
+  //     //       rowErrors.firstName = 'Tên không được để trống';
+  //     //     }
+  //     //     if (!row[' phone ']) {
+  //     //       rowErrors.phone = 'Tên không được để trống';
+  //     //     }
+  //     //     if (!row[' rentalPeriod ']) {
+  //     //       rowErrors.phone = 'Số tháng thuê không được để trống';
+  //     //     }
+    
+  //     //     // Kiểm tra cột Email
+  //     //     if (!row[' email ']) {
+  //     //       rowErrors.email = 'Email không được để trống';
+  //     //     } else if (!emailRegex.test(row[' email '])) {
+  //     //       rowErrors.email = 'Email không hợp lệ';
+  //     //     }
+    
+  //     //     // Kiểm tra cột Ngày tháng năm
+  //     //     if (!row[' checkInTime ']) {
+  //     //         rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
+  //     //     } else {
+  //     //         // Kiểm tra định dạng ngày tháng
+  //     //         const date = new Date(row[' checkInTime ']);
+  //     //         if (isNaN(date.getTime())) {
+  //     //             rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
+  //     //         }
+  //     //     }
+    
+  //     //     if (Object.keys(rowErrors).length > 0) {
+  //     //         errors.push({ row: index + 1, errors: rowErrors });
+  //     //     }
+  //     // });
+    
+  //     return errors;
+  //   } catch (error) { 
+  //     return errors;
+  //   }
+  // }
+
+  static async validateDataFileExcel (
+    data: DataRow[],
+  ): Promise<any> {
+    const errors = [];
+    try {
+      const {
+        room: roomModel,
+        user: userModel,
+        transactions: transactionsModel,
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+      } = global.mongoModel;
+    
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[0-9]{9,10}$/;
+
+      for(let i = 0; i < data.length; i++) {
+        let rowErrors: { [key: string]: string } = {};
+        let roomData = null;
+
+        if (!data[i][' order ']) {
+          rowErrors.order = 'STT không được để trống';
+        }
+        if (!data[i][' roomName ']) {
+          rowErrors.roomName = 'Tên phòng không được để trống';
+        }
+        if (!data[i][' roomId ']) {
+          rowErrors.roomId = 'ID phòng không được để trống';
+        } else {
+          roomData = await roomModel.findOne({_id: data[i][' roomId ']}).lean().exec();
+        }
+        
+        if (!data[i][' fullName ']) {
+          rowErrors.fullName = 'Họ và Tên không được để trống';
+        }
+        if (!data[i][' lastName ']) {
+          rowErrors.lastName = 'Họ không được để trống';
+        }
+        if (!data[i][' firstName ']) {
+          rowErrors.firstName = 'Tên không được để trống';
+        }
+        if (!data[i][' phone ']) {
+          rowErrors.phone = 'Số điện thoại không được để trống';
+        } else {
+          if (!phoneRegex.test(data[i][' phone '])) {
+            rowErrors.phone = 'Số điện thoại không hợp lệ';
+          } else {
+            const phoneNumber = data[i][' phone '];
+            const phoneNumberObect = {
+              countryCode: "+84",
+              number: helpers.stripeZeroOut(phoneNumber),
+            };
+
+            let userData = await userModel.findOne({phoneNumber: phoneNumberObect})
+              .lean()
+              .exec();
+
+            if(!userData) {
+              if(!data[i][' password ']) {
+                rowErrors.password = 'Tài khoản không tồn tại, vui lòng thêm mật khẩu để tạo tài khoản';            
+              }
+    
+              const existingUserEmail = await userModel
+                .findOne({
+                  email: data[i][' email '],
+                  isDeleted: false,
+                })
+                .lean()
+                .exec();
+    
+              if(existingUserEmail) {
+                rowErrors.email = 'Tài khoản không tồn tại, email cung cấp đã tồn tại trong hệ thống, vui lòng nhập email mới'
+              }
+            } else {
+              if(userData.isLocked) {
+                rowErrors.phone = 'Tài khoản đã bị khóa, vui lòng liên hệ quản trị viên';
+              }
+            }
+          }
+        }
+
+        if (!data[i][' rentalPeriod ']) {
+          rowErrors.rentalPeriod = 'Số tháng thuê không được để trống';
+        } else {
+          if(roomData) {
+            console.log("kkkk",typeof data[i][' rentalPeriod '])
+            let rentalPeriod = typeof data[i][' rentalPeriod '] === 'string' ? parseInt(data[i][' rentalPeriod ']) : data[i][' rentalPeriod '];
+            if(roomData.minimumMonths > rentalPeriod) {
+              rowErrors.rentalPeriod = 'Số tháng thuê không được nhỏ hơn số tháng thuê tối thiểu của phòng';
+            }
+          }
+        }
+      
+        if(!roomData) {
+          rowErrors.roomId = 'Phòng không tồn tại';
+        } else {
+          //note: vẫn bị lỗi - lỗi phụ thuộc vào bảng giữ liệu
+          if(roomData.name.trim() !== data[i][' roomName '].trim()) {
+            rowErrors.roomName = 'Tên phòng tìm thấy và tên phòng trong bảng dữ liệu không trùng nhau';
+          }
+          console.log(`FFF db ${i}: `, roomData.name.trim())
+          console.log(`FFF file ${i}: `, data[i][' roomName '].trim())
+          if(roomData.status !== "available") {
+            rowErrors.roomId = 'Phòng hiện không còn trống';
+          }
+
+          const floorData = await floorModel
+            .findOne({ rooms: roomData._id })
+            .populate("rooms")
+            .lean()
+            .exec();
+
+          if (!floorData) {
+            rowErrors.floor = 'Tầng của phòng không hợp lệ';
+          }
+
+          const motelRoomData = await motelRoomModel
+          .findOne({ floors: floorData._id })
+          .populate("floors owner address")
+          .lean()
+          .exec();
+
+          if (!motelRoomData) {
+            rowErrors.motel = 'Tòa nhà của phòng không hợp lệ';
+          }
+
+          const transactionsData = await transactionsModel.findOne({
+            room: roomData._id,
+            status: "waiting",
+            type: "deposit",
+            isDeleted: false,
+          }).lean().exec();
+
+          if(transactionsData) {
+            rowErrors.deposit = 'Phòng đã có giao dịch cọc trước đó, vui lòng kiểm tra lại';
+          }
+        }
+    
+        // Kiểm tra cột Email
+        if (!data[i][' email ']) {
+          rowErrors.email = 'Email không được để trống';
+        } else if (!emailRegex.test(data[i][' email '])) {
+          rowErrors.email = 'Email không hợp lệ';
+        }
+  
+        // Kiểm tra cột Ngày tháng năm
+        if (!data[i][' checkInTime ']) {
+            rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
+        } else {
+            // Kiểm tra định dạng ngày tháng
+            const date = new Date(data[i][' checkInTime ']);
+            if (isNaN(date.getTime())) {
+                rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
+            }
+        }
+        console.log(`HHH ${i}: `, rowErrors)
+        if (Object.keys(rowErrors).length > 0) {
+          errors.push({ row: i + 1, errors: rowErrors });
+        }
+      }
+      // data.forEach((row, index) => {
+      //     let rowErrors: { [key: string]: string } = {};
+    
+      //     const phoneNumber = row[' phone '];
+      //     const phoneNumberObect = {
+      //       countryCode: "+84",
+      //       number: helpers.stripeZeroOut(phoneNumber),
+      //     };
+
+        
+    
+      //     console.log({row})
+      //     // console.log(row['fullName'])
+      //     // console.log(row['roomId'])
+    
+      //     // Kiểm tra cột Họ và Tên
+      //     if (!row[' order ']) {
+      //       rowErrors.order = 'STT không được để trống';
+      //     }
+      //     if (!row[' roomName ']) {
+      //       rowErrors.roomName = 'Tên phòng không được để trống';
+      //     }
+      //     if (!row[' roomId ']) {
+      //       rowErrors.roomId = 'ID phòng không được để trống';
+      //     }
+      //     if (!row[' fullName ']) {
+      //       rowErrors.fullName = 'Họ và Tên không được để trống';
+      //     }
+      //     if (!row[' lastName ']) {
+      //       rowErrors.lastName = 'Họ không được để trống';
+      //     }
+      //     if (!row[' firstName ']) {
+      //       rowErrors.firstName = 'Tên không được để trống';
+      //     }
+      //     if (!row[' phone ']) {
+      //       rowErrors.phone = 'Tên không được để trống';
+      //     }
+      //     if (!row[' rentalPeriod ']) {
+      //       rowErrors.phone = 'Số tháng thuê không được để trống';
+      //     }
+    
+      //     // Kiểm tra cột Email
+      //     if (!row[' email ']) {
+      //       rowErrors.email = 'Email không được để trống';
+      //     } else if (!emailRegex.test(row[' email '])) {
+      //       rowErrors.email = 'Email không hợp lệ';
+      //     }
+    
+      //     // Kiểm tra cột Ngày tháng năm
+      //     if (!row[' checkInTime ']) {
+      //         rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
+      //     } else {
+      //         // Kiểm tra định dạng ngày tháng
+      //         const date = new Date(row[' checkInTime ']);
+      //         if (isNaN(date.getTime())) {
+      //             rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
+      //         }
+      //     }
+    
+      //     if (Object.keys(rowErrors).length > 0) {
+      //         errors.push({ row: index + 1, errors: rowErrors });
+      //     }
+      // });
+    
+      return errors;
+    } catch (error) { 
+      return errors;
+    }
+  }
+
   /* -------------------------------------------------------------------------- */
   /*                             END HELPER FUNCTION                            */
   /* -------------------------------------------------------------------------- */
@@ -2928,6 +3938,62 @@ async function createOrderHistory(
   return orderData;
 }
 
+async function createAccountForUser(
+  data: any,
+  res,
+  phoneNumber,
+): Promise<any> {
+  let dataSignUp = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    phoneNumber: data.phoneNumber,
+    email: data.email,
+    password: data.password,
+    confirmPassword: data.confirmPassword,
+    role: ['customer'],
+    active: true,
+  }
+
+  const {
+    user: userModel,
+  } = global.mongoModel;
+
+  // Validate input data for signUp
+  const validateResults = await userModel.validateData(["signUp"], dataSignUp);
+
+  // Parse error list form validation results
+  const errorList = normalizeError(validateResults);
+
+  // Validation Error
+  if (errorList.length > 0) {
+    return HttpResponse.returnBadRequestResponse(res, errorList);
+  }
+
+  // active
+  dataSignUp["active"] = true;
+
+  if (!dataSignUp.role.includes("customer")) {
+    dataSignUp.role.push("customer");
+  }
+
+  let userData = new userModel(dataSignUp);
+  console.log({dataSignUp})
+  userData.phoneNumberFull = phoneNumber;
+
+  // Generate jwt token
+  userData.token = jwtHelper.signToken(userData._id, "local");
+
+  let resData = await userData.save();
+  console.log({ resData, userData });
+  resData = resData.toObject();
+
+  // Remove password property
+  delete resData.password;
+  delete resData.social;
+
+  return userData;
+}
+
 const getRandomInt = (min, max) =>
   Math.floor(Math.random() * (max - min)) + min;
 
@@ -2947,3 +4013,97 @@ const getRandomHex2 = () => {
   const ma = `${getRandomString(8, baseString)}`;
   return ma;
 };
+
+interface DataRow {
+  fullName: string;
+  email: string;
+  checkInTime: string;
+}
+
+interface ValidationError {
+  row: number;
+  errors: { [key: string]: string };
+}
+
+function convertErrorsToExcelFormat(errors: ValidationError[]): any[] {
+  return errors.map(error => ({
+      row: error.row,
+      errors: Object.entries(error.errors)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('; ')
+  }));
+}
+
+async function validateData(data: DataRow[]) {
+  const {
+    room: roomModel,
+    user: userModel,
+  } = global.mongoModel;
+
+  const errors = [];
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  data.forEach((row, index) => {
+      let rowErrors: { [key: string]: string } = {};
+
+      const phoneNumber = row[' phone '];
+      const phoneNumberObect = {
+        countryCode: "+84",
+        number: helpers.stripeZeroOut(phoneNumber),
+      };
+
+      console.log({row})
+      // console.log(row['fullName'])
+      // console.log(row['roomId'])
+
+      // Kiểm tra cột Họ và Tên
+      if (!row[' order ']) {
+        rowErrors.order = 'STT không được để trống';
+      }
+      if (!row[' roomName ']) {
+        rowErrors.roomName = 'Tên phòng không được để trống';
+      }
+      if (!row[' roomId ']) {
+        rowErrors.roomId = 'ID phòng không được để trống';
+      }
+      if (!row[' fullName ']) {
+        rowErrors.fullName = 'Họ và Tên không được để trống';
+      }
+      if (!row[' lastName ']) {
+        rowErrors.lastName = 'Họ không được để trống';
+      }
+      if (!row[' firstName ']) {
+        rowErrors.firstName = 'Tên không được để trống';
+      }
+      if (!row[' phone ']) {
+        rowErrors.phone = 'Tên không được để trống';
+      }
+      if (!row[' rentalPeriod ']) {
+        rowErrors.phone = 'Số tháng thuê không được để trống';
+      }
+
+      // Kiểm tra cột Email
+      if (!row[' email ']) {
+        rowErrors.email = 'Email không được để trống';
+      } else if (!emailRegex.test(row[' email '])) {
+        rowErrors.email = 'Email không hợp lệ';
+      }
+
+      // Kiểm tra cột Ngày tháng năm
+      if (!row[' checkInTime ']) {
+          rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
+      } else {
+          // Kiểm tra định dạng ngày tháng
+          const date = new Date(row[' checkInTime ']);
+          if (isNaN(date.getTime())) {
+              rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
+          }
+      }
+
+      if (Object.keys(rowErrors).length > 0) {
+          errors.push({ row: index + 1, errors: rowErrors });
+      }
+  });
+
+  return errors;
+}
