@@ -13,7 +13,10 @@ const roomRoute = express.Router();
 
 /* ------------------------------- PUBLIC API ------------------------------- */
 
+roomRoute.route("/exportListRoomAbleRent/:id").get(RoomController.listRoomAbleRentByIdMotel);
+
 roomRoute.route("/quickDepositByAdmin/").post(RoomController.quickDepositByAdmin);
+roomRoute.route("/quickDepositManyRoomsByAdmin/").post(RoomController.quickDepositManyRoomsByAdmin);
 
 roomRoute.route("/quickRentByAdmin/").post(RoomController.quickRentByAdmin);
 
