@@ -19,6 +19,7 @@ roomRoute.route("/quickDepositByAdmin/").post(RoomController.quickDepositByAdmin
 roomRoute.route("/quickDepositManyRoomsByAdmin/").post(RoomController.quickDepositManyRoomsByAdmin);
 
 roomRoute.route("/quickRentByAdmin/").post(RoomController.quickRentByAdmin);
+roomRoute.route("/quickRentManyRoomsByAdmin/").post(RoomController.quickRentManyRoomsByAdmin);
 
 roomRoute.route("/:id/job").get(JobController.getJobByRoomId);
 
