@@ -1555,7 +1555,23 @@ export default class RoomController {
 
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        const contentDisposition = res.getHeader('Content-Disposition');
+        if (contentDisposition) {
+            console.log('Header Content-Disposition đã được đính kèm:', contentDisposition);
+        } else {
+            console.log('Header Content-Disposition chưa được đính kèm');
+        }
+
+        // Kiểm tra header Content-Type
+        const contentType = res.getHeader('Content-Type');
+        if (contentType) {
+            console.log('Header Content-Type đã được đính kèm:', contentType);
+        } else {
+            console.log('Header Content-Type chưa được đính kèm');
+        }
         res.send(excelBuffer);
+        return;
       }
 
       //chuyển thành mảng, loại bỏ khoảng trắng đầu và cuối
@@ -1912,6 +1928,12 @@ export default class RoomController {
       return HttpResponse.returnSuccessResponse(res, "Hoàn thành tạo đặt cọc từ file");
     } catch (error) {
       // console.log({error});
+      console.error('Error:', error);
+
+        // Đảm bảo rằng headers chưa được gửi trước khi xử lý lỗi
+      if (!res.headersSent) {
+          res.status(500).json({ message: 'Internal Server Error' });
+      }
       next(error);
     }
   }
