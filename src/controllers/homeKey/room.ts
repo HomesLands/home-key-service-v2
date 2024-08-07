@@ -1593,6 +1593,7 @@ export default class RoomController {
       // console.log({cleanArray})
 
       //note: check tạm qua bảng dữ liệu
+      {
       // for(let i = 0; i < cleanArray.length; i++) {
       //   if(cleanArray[i].length < 10) {
       //     return HttpResponse.returnBadRequestResponse(
@@ -1701,6 +1702,8 @@ export default class RoomController {
       //   }
       // }
 
+      }
+
 
       //Bắt đầu tạo
       for(let i = 0; i < cleanArray.length; i++) {
@@ -1725,9 +1728,6 @@ export default class RoomController {
             role: ['customer'],
           }
 
-          console.log("dataSignUp out", dataSignUp);
-          console.log({phoneNumber});
-
           userDataN = await createAccountForUser(
             dataSignUp,
             res,
@@ -1748,8 +1748,6 @@ export default class RoomController {
           .populate("floors owner address")
           .lean()
           .exec();
-
-          console.log({motelRoomDataN})
 
         let price = roomDataN.price;
         let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
@@ -2468,6 +2466,515 @@ export default class RoomController {
       }
 
       return HttpResponse.returnSuccessResponse(res, "Hoàn thành tạo thuê nhanh từ file");
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async quickRentManyRoomsByAdminV2(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        user: userModel,
+        room: roomModel,
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+        transactions: transactionsModel,
+        job: jobModel,
+        order: orderModel,
+        banking: bankingModel,
+        bill: billModel,
+      } = global.mongoModel;
+
+      // console.log("req", req["files"]);
+
+      if(!req["files"] || !req["files"].file) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Vui lòng tải file lên"
+        )
+      }
+
+      const bankId = req.body.bankId;
+
+      console.log("bankId", bankId);
+
+      const file = req["files"].file as UploadedFile;
+
+      const data = reader.read(file.data, {type: 'buffer'});
+
+      const sheetName = data.SheetNames[0];
+      const worksheet = data.Sheets[sheetName];
+      const dataN = reader.utils.sheet_to_json(worksheet);
+
+      const dataValidate: DataRow[] = reader.utils.sheet_to_json<DataRow>(worksheet, { defval: "" });
+      const validationErrors = await RoomController.validateDataFileExcelForQuickRentMany(dataValidate);
+
+      if (validationErrors.length > 0) {
+        const formattedErrors = convertErrorsToExcelFormat(validationErrors);
+        const ws = reader.utils.json_to_sheet(formattedErrors);
+        const validationWorkbook = reader.utils.book_new();
+        reader.utils.book_append_sheet(validationWorkbook, ws, 'ValidationErrors');
+
+        const excelBuffer = reader.write(validationWorkbook, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+        const contentDisposition = res.getHeader('Content-Disposition');
+        if (contentDisposition) {
+            console.log('Header Content-Disposition đã được đính kèm:', contentDisposition);
+        } else {
+            console.log('Header Content-Disposition chưa được đính kèm');
+        }
+
+        // Kiểm tra header Content-Type
+        const contentType = res.getHeader('Content-Type');
+        if (contentType) {
+            console.log('Header Content-Type đã được đính kèm:', contentType);
+        } else {
+            console.log('Header Content-Type chưa được đính kèm');
+        }
+        res.send(excelBuffer);
+        return;
+      }
+
+      //chuyển thành mảng, loại bỏ khoảng trắng đầu và cuối
+      const arrData = dataN.map((item) => Object.values(item).map(value => String(value).trim()));
+
+      // console.log({arrData})
+      
+      //Loại bỏ phần tử chứa khoảng trắng trong mỗi mảng con
+      const cleanArray = arrData.map(subArray => subArray.filter(item => item.trim() !== ''));
+      // console.log({cleanArray})
+
+      await global.agendaInstance.agenda.schedule(
+        moment().add(15, "milliseconds"),
+        "CreateAllOrderForQuickRentByAdmin",
+        { data: cleanArray, bankId: bankId, userId: req['userId'] }
+      );
+
+      //Bắt đầu tạo
+      {
+        // for(let i = 0; i < cleanArray.length; i++) {
+        //   const checkInDay = moment(cleanArray[i][7], "DD/MM/YYYY").startOf("days");
+        //   const timeMoment = moment();
+        //   const checkOutDay = checkInDay.clone().add(cleanArray[i][8], "months").subtract(1, "days").endOf("days");
+  
+        //   const phoneNumber = cleanArray[i][6];
+        //   const phoneNumberObect = {
+        //     countryCode: "+84",
+        //     number: helpers.stripeZeroOut(phoneNumber),
+        //   };
+  
+        //   let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+        //   .lean()
+        //   .exec();
+  
+        //   if(!userDataN) {
+        //     let dataSignUp = {
+        //       firstName: cleanArray[i][5],
+        //       lastName: cleanArray[i][4],
+        //       phoneNumber: phoneNumberObect,
+        //       email: cleanArray[i][9],
+        //       password: cleanArray[i][10],
+        //       confirmPassword: cleanArray[i][10],
+        //       role: ['customer'],
+        //     }
+  
+        //     console.log("dataSignUp out", dataSignUp);
+        //     console.log({phoneNumber});
+  
+        //     userDataN = await createAccountForUser(
+        //       dataSignUp,
+        //       res,
+        //       phoneNumber,
+        //     );
+        //   }
+  
+        //   const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+  
+        //   const floorDataN = await floorModel
+        //     .findOne({ rooms: roomDataN._id })
+        //     .populate("rooms")
+        //     .lean()
+        //     .exec();
+  
+        //   const motelRoomDataN = await motelRoomModel
+        //     .findOne({ floors: floorDataN._id })
+        //     .populate("floors owner address")
+        //     .lean()
+        //     .exec();
+  
+        //     console.log({motelRoomDataN})
+  
+        //   let price = roomDataN.price;
+        //   let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
+        //   let deposit = Number(price) / 2;
+        //   let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+        //   let total = Number(price) + Number(bail);
+  
+        //   let resData = await jobModel.create({
+        //     checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
+        //     user: userDataN._id,
+        //     room: roomDataN._id,
+        //     price: price,
+        //     bail: bail,
+        //     total: total,
+        //     afterCheckInCost: afterCheckInCost,
+        //     deposit: deposit,
+        //     // rentalPeriod: parseInt(cleanArray[i][8]),
+        //     rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
+        //     status: "pendingActivated",
+            
+        //     fullName: userDataN.lastName + " " + userDataN.firstName,
+        //     phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
+        //   });
+  
+        //   let userUpdateData = {
+        //     $addToSet: {
+        //       jobs: resData._id,
+        //     },
+        //   };
+  
+        //   await userModel
+        //     .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
+        //     .exec();
+  
+        //   //order, transaction, bill of deposit
+        //   const orderDataDeposit = await orderModel.create({
+        //     user: userDataN._id,
+        //     job: resData._id,
+        //     isCompleted: true,
+        //     description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        //     amount: deposit,
+        //     type: "deposit",
+        //     expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+        //   });
+  
+        //   resData = await jobModel.findOneAndUpdate(
+        //     { _id: resData._id },
+        //     {
+        //       isCompleted: orderDataDeposit.isCompleted,
+        //       $addToSet: { orders: orderDataDeposit._id },
+        //       currentOrder: orderDataDeposit._id,
+        //     },
+        //     { new: true }
+        //   );
+  
+        //   await transactionsModel.create({
+        //     user: userDataN._id,
+        //     keyPayment: getRandomHex2(),
+        //     keyOrder: orderDataDeposit.keyOrder,
+        //     description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        //     amount: orderDataDeposit.amount,
+        //     status: "success",
+        //     paymentMethod: "cash",
+        //     order: orderDataDeposit._id,
+        //     banking: bankId,
+        //     type: "deposit",
+        //     motel: motelRoomDataN._id,
+        //     room: roomDataN._id,
+        //   });
+  
+        //   const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+  
+        //   await billModel.create({
+        //     order: orderDataDeposit._id,
+        //     idBill: orderDataDeposit.keyOrder,
+        //     dateBill: moment().format("DD/MM/YYYY"),
+        //     nameMotel: motelRoomDataN.name,
+        //     addressMotel: motelRoomDataN.address.address,
+        //     nameRoom: roomDataN.name,
+  
+        //     nameUser: userDataN.lastName + " " + userDataN.firstName,
+        //     phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+        //     addressUser: userDataN.address,
+        //     emailUser: userDataN.email,
+  
+        //     nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+        //     emailOwner: motelRoomDataN.owner.email,
+        //     phoneOwner: 
+        //       motelRoomDataN.owner.phoneNumber.countryCode 
+        //       + motelRoomDataN.owner.phoneNumber.number,
+        //     addressOwner: motelRoomDataN.owner.address,
+        //     nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+        //     numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+        //     nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+  
+        //     totalAll: orderDataDeposit.amount.toFixed(2),
+        //     totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
+        //     totalTaxAll: 0,
+        //     typeTaxAll: 0,
+  
+        //     description: orderDataDeposit.description,
+  
+        //     user: userDataN._id,
+        //     motel: motelRoomDataN._id,
+        //     roomRented: roomDataN._id,
+  
+        //     type: "deposit",
+        //   });
+  
+        //   //order afterCheckInCost
+        //   const orderDataAfterCheckInCost = await orderModel.create({
+        //     user: resData.user,
+        //     job: resData._id,
+        //     isCompleted: true,
+        //     description: `Tiền thanh toán khi nhận phòng tháng 
+        //     ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        //     amount: resData.afterCheckInCost,
+        //     type: "afterCheckInCost",
+        //     expireTime: moment().add(7, "days").endOf("day").toDate(),
+        //   });
+  
+        //   resData = await jobModel.findOneAndUpdate(
+        //     { _id: resData._id },
+        //     {
+        //       $addToSet: { orders: orderDataAfterCheckInCost._id },
+        //       currentOrder: orderDataAfterCheckInCost._id,
+        //     },
+        //     { new: true }
+        //   );
+          
+        //   await transactionsModel.create({
+        //     user: userDataN._id,
+        //     keyPayment: getRandomHex2(), 
+        //     keyOrder: orderDataAfterCheckInCost.keyOrder,
+        //     description:  `Tiền thanh toán khi nhận phòng tháng 
+        //     ${moment(resData.checkInTime).format("MM/YYYY")}`,
+        //     amount: orderDataAfterCheckInCost.amount,
+        //     status: "success",
+        //     paymentMethod: "cash",
+        //     order: orderDataAfterCheckInCost._id,
+        //     banking: bankId,
+        //     type: "afterCheckInCost",
+        //     motel: motelRoomDataN._id,
+        //     room: roomDataN._id,
+        //   });
+  
+        //   await billModel.create({
+        //     order: orderDataAfterCheckInCost._id,
+        //     idBill: orderDataAfterCheckInCost.keyOrder,
+        //     dateBill: moment().format("DD/MM/YYYY"),
+        //     nameMotel: motelRoomDataN.name,
+        //     addressMotel: motelRoomDataN.address.address,
+        //     nameRoom: roomDataN.name,
+  
+        //     nameUser: userDataN.lastName + " " + userDataN.firstName,
+        //     phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+        //     addressUser: userDataN.address,
+        //     emailUser: userDataN.email,
+  
+        //     nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+        //     emailOwner: motelRoomDataN.owner.email,
+        //     phoneOwner: 
+        //       motelRoomDataN.owner.phoneNumber.countryCode 
+        //       + motelRoomDataN.owner.phoneNumber.number,
+        //     addressOwner: motelRoomDataN.owner.address,
+        //     nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+        //     numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+        //     nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+  
+        //     totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
+        //     totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
+        //     totalTaxAll: 0,
+        //     typeTaxAll: 0,
+  
+        //     description: orderDataAfterCheckInCost.orderData,
+  
+        //     user: userDataN._id,
+        //     motel: motelRoomDataN._id,
+        //     roomRented: roomDataN._id,
+  
+        //     type: "afterCheckInCost",
+        //   });
+  
+        //   //create history monthly order
+        
+        //   if(checkInDay.clone().year() < timeMoment.clone().year()) {
+        //     let monthPlus: number = 0;
+        //     while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+        //       //create order
+        //       let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+  
+        //       //first month
+        //       if(monthPlus === 0) {
+        //         startTime = checkInDay.clone().startOf("days");
+        //       }
+        //       let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+  
+        //       let orderDataMonthly = await createOrderHistory(
+        //         resData,
+        //         roomDataN,
+        //         motelRoomDataN,
+        //         startTime,
+        //         endTime,
+        //         bankId,
+        //       );
+  
+        //       await jobModel.findOneAndUpdate(
+        //         { _id: resData._id },
+        //         {
+        //           $addToSet: { orders: orderDataMonthly._id },
+        //           currentOrder: orderDataMonthly._id,
+        //           status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+        //           isActived: true,
+        //         }
+        //       );
+  
+        //       monthPlus++;
+        //     }
+  
+        //     //tính cho tháng hiện tại vào đầu tháng sau
+        //     await global.agendaInstance.agenda.schedule(
+        //       timeMoment.clone()
+        //         .startOf("month")
+        //         .add(1, "months")
+        //         .toDate(),
+        //       "CreateOrderForNextMonth",
+        //       { jobId: resData._id }
+        //     );
+  
+        //   } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
+        //     if (checkInDay.clone().month() <  timeMoment.clone().month()) {
+        //       // tạo order trước đó
+        //       let monthPlus: number = 0;
+        //       while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+        //         //create order
+        //         let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+  
+        //         //first month
+        //         if(monthPlus === 0) {
+        //           startTime = checkInDay.clone().startOf("days");
+        //         }
+        //         let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+  
+        //         let orderDataMonthly = await createOrderHistory(
+        //           resData,
+        //           roomDataN,
+        //           motelRoomDataN,
+        //           startTime,
+        //           endTime,
+        //           bankId,
+        //         );
+  
+        //         await jobModel.findOneAndUpdate(
+        //           { _id: resData._id },
+        //           {
+        //             $addToSet: { orders: orderDataMonthly._id },
+        //             currentOrder: orderDataMonthly._id,
+        //             status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+        //             isActived: true,
+        //           }
+        //         );
+  
+        //         monthPlus++;
+        //       }
+  
+        //       //tính cho tháng hiện tại vào đầu tháng sau
+        //       await global.agendaInstance.agenda.schedule(
+        //         timeMoment.clone()
+        //           .startOf("month")
+        //           .add(1, "months")
+        //           .toDate(),
+        //         "CreateOrderForNextMonth",
+        //         { jobId: resData._id }
+        //       );
+  
+        //     } else {
+        //       //không cần tạo lịch sử hóa đơn
+        //       await global.agendaInstance.agenda.schedule(
+        //         timeMoment.clone()
+        //           .startOf("month")
+        //           .add("1", "months")
+        //           .toDate(),
+        //         "CreateFirstMonthOrder",
+        //         { jobId: resData._id }
+        //       );
+        //     }
+        //   }
+  
+        //   await roomModel
+        //   .findOneAndUpdate(
+        //     { _id: roomDataN._id },
+        //     { status: "rented", rentedBy: userDataN._id },
+        //     { new: true }
+        //   )
+        //   .exec();
+  
+        //   const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
+        //     return room.status;
+        //   });
+    
+        //   await floorModel
+        //     .findOneAndUpdate(
+        //       { _id: floorDataN._id },
+        //       {
+        //         availableRoom: roomGroup["available"]
+        //           ? roomGroup["available"].length
+        //           : 0,
+        //         rentedRoom: roomGroup["rented"]
+        //           ? roomGroup["rented"].length
+        //           : 0,
+        //         depositedRoom: roomGroup["deposited"]
+        //           ? roomGroup["deposited"].length
+        //           : 0,
+        //       }
+        //     )
+        //     .exec();
+    
+        //   let updateData = {
+        //     availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
+        //     rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
+        //     depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
+        //   };
+    
+        //   await motelRoomModel
+        //     .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
+        //     .exec();
+    
+        //   await jobModel
+        //     .findOneAndUpdate(
+        //       { _id: resData._id },
+        //       {
+        //         isCompleted: true,
+        //         status: "pendingActivated",
+        //       },
+        //       { new: true }
+        //     )
+        //     .exec();
+    
+        //   const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+    
+        //   await NotificationController.createNotification({
+        //     title: "Thông báo kích hoạt hợp đồng",
+        //     content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+        //     ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+    
+        //     user: resData.user._id,
+        //     isRead: false,
+        //     type: "activeJob",
+        //     url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
+        //     tag: "Job",
+        //     contentTag: resData._id,
+        //   });
+    
+        //   await global.agendaInstance.agenda.schedule(
+        //     moment(resData.checkInTime)
+        //       .add(7, "days")
+        //       .endOf("day")
+        //       .toDate(),
+        //     "CheckJobStatus",
+        //     { jobId: resData._id }
+        //   );
+        // }
+      }
+
+      return HttpResponse.returnSuccessResponse(res, "Dữ liệu hợp lệ, vui lòng chờ trong giây lát ");
     } catch (error) {
       next(error);
     }
