@@ -2471,6 +2471,38 @@ export default class RoomController {
     }
   }
 
+  /** 
+  * @swagger
+  * /v1/homeKey/room/quickRentManyRoomsByAdmin/:
+  *   post:
+  *     description: Create many job by admin - rent many
+  *     tags: [Room]
+  *     produces:
+  *       - application/json
+  *       - multipart/form-data
+  *     parameters: 
+  *       - in: formData
+  *         name: file
+  *         type: file
+  *         required: true
+  *         description: Excel file
+  *       - in: formData
+  *         name: bankId
+  *         required: true
+  *         type: string
+  *         description: ID banking
+  *     responses:
+  *       200:
+  *         description: Success
+  *       400:
+  *         description: Invalid request params
+  *       401:
+  *         description: Unauthorized
+  *       404:
+  *         description: Resource not found
+  *     security:
+  *       - auth: []
+  */
   static async quickRentManyRoomsByAdminV2(
     req: Request,
     res: Response,
