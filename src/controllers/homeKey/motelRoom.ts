@@ -83,94 +83,145 @@ export default class MotelRoomController {
       const {
         motelRoom: motelRoomModel,
         image: imageModel,
+        address: addressModel,
       } = global.mongoModel;
+
       let { sortBy, role, size, page, keyword } = req.query;
-      size === null ? null : size;
-      page === null ? null : page;
-      const sortType = req.query.sortType === "ascending" ? 1 : -1;
-      let condition, sort;
+      // let address = req.query.address;
+      // console.log("address string: ", address);
+      // let addQuery = 'Ho Chi Minh City';
+      // if(address) {
+      //   if(typeof address === 'string') {
+      //     let parts = address.split(", ");
+      //     if(parts.length >= 2) {
+      //       addQuery = parts[parts.length - 2];
+      //     }
+      //   }
+      // }
 
-      condition = [
-        {
-          $match: {
-            isAcceptedByAdmin: true
-          }
-        },
-        {
-          $lookup: {
-            from: "addresses",
-            localField: "address",
-            foreignField: "_id",
-            as: "address",
-          },
-        },
-        { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
-        {
-          $lookup: {
-            from: "images",
-            localField: "images",
-            foreignField: "_id",
-            as: "images",
-          },
-        },
-        { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
-        {
-          $lookup: {
-            from: "users",
-            localField: "owner",
-            foreignField: "_id",
-            as: "owner",
-          },
-        },
-        { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
-        {
-          $addFields: {
-            "address.location": "$address.geometry.location",
-          },
-        },
-        {
-          $project: {
-            "owner.token": 0,
-            "owner.password": 0,
-            "owner.role": 0,
-            "owner.active": 0,
-            "owner.isVerified": 0,
-            "owner.signUpCompleted": 0,
-            "owner.isDeleted": 0,
-          },
-        },
-      ];
+      // console.log({addQuery})
+      // const listAddress = await addressModel.find({address: { $regex: addQuery, $options: 'i' }}).lean().exec();
+      // console.log({listAddress});
+      // console.log("listAddress length", listAddress.length);
 
-      if (sortBy && sortType) {
-        switch (sortBy) {
-          case "createdAt": {
-            sort = { createdAt: sortType };
-            break;
-          }
-          case "updatedAt": {
-            sort = { updatedAt: sortType };
-            break;
-          }
-        }
-        condition.push({ $sort: sort });
-      }
+      // -----------------
+      // size === null ? null : size;
+      // page === null ? null : page;
+      // const sortType = req.query.sortType === "ascending" ? 1 : -1;
+      // let condition, sort;
 
-      const resData = helpers.changeTimeZone(
-        await motelRoomModel.paginate(size, page, condition)
-      );
-      console.log("getMotelRoomList");
-      if (resData) {
-        const n = resData["data"].length;
-        for (let i = 0; i < n; i++) {
-          if (resData["data"][i].images) {
-            if (Array.isArray(resData["data"][i].images)) {
-              if (resData["data"][i].images.length > 0) {
-                for (let j = 0; j < resData["data"][i].images.length; j++) {
+      // condition = [
+      //   {
+      //     $match: {
+      //       isAcceptedByAdmin: true
+      //     }
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "addresses",
+      //       localField: "address",
+      //       foreignField: "_id",
+      //       as: "address",
+      //     },
+      //   },
+      //   { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
+      //   {
+      //     $lookup: {
+      //       from: "images",
+      //       localField: "images",
+      //       foreignField: "_id",
+      //       as: "images",
+      //     },
+      //   },
+      //   { $unwind: { path: "$images", preserveNullAndEmptyArrays: true } },
+      //   {
+      //     $lookup: {
+      //       from: "users",
+      //       localField: "owner",
+      //       foreignField: "_id",
+      //       as: "owner",
+      //     },
+      //   },
+      //   { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
+      //   {
+      //     $addFields: {
+      //       "address.location": "$address.geometry.location",
+      //     },
+      //   },
+      //   {
+      //     $project: {
+      //       "owner.token": 0,
+      //       "owner.password": 0,
+      //       "owner.role": 0,
+      //       "owner.active": 0,
+      //       "owner.isVerified": 0,
+      //       "owner.signUpCompleted": 0,
+      //       "owner.isDeleted": 0,
+      //     },
+      //   },
+      // ];
+
+      // if (sortBy && sortType) {
+      //   switch (sortBy) {
+      //     case "createdAt": {
+      //       sort = { createdAt: sortType };
+      //       break;
+      //     }
+      //     case "updatedAt": {
+      //       sort = { updatedAt: sortType };
+      //       break;
+      //     }
+      //     default:
+      //       sort = {};
+      //   }
+      //   condition.push({ $sort: sort });
+      // }
+
+      // const resData = helpers.changeTimeZone(
+      //   await motelRoomModel.paginate(size, page, condition)
+      // );
+
+      // const listMotelByAddress = [];
+      // for(let i = 0; i < listAddress.length; i++) {
+      //   let motel = await motelRoomModel.findOne({
+      //     address: listAddress[i]._id,
+      //     isAcceptedByAdmin: true,
+      //   })
+      //   .populate("address")
+      //   .populate({
+      //     path: "owner",
+      //     select: "-token -password -role -active -isVerified -signUpCompleted -isDeleted"
+      //   })
+      //   .lean().exec();
+
+      //   if(motel) {
+      //     listMotelByAddress.push(motel);
+      //   }
+      // }
+
+      // console.log({listMotelByAddress});
+
+      let resData = await motelRoomModel.find({
+        isAcceptedByAdmin: true,
+      })
+      .populate("address")
+      .populate({
+        path: "owner",
+        select: "-token -password -role -active -isVerified -signUpCompleted -isDeleted"
+      })
+      .lean().exec();
+
+      if(resData.length > 0) {
+        for(let i = 0; i < resData.length; i++) {
+          if (resData[i].images) {
+            if (Array.isArray(resData[i].images)) {
+              if (resData[i].images.length > 0) {
+                for (let j = 0; j < resData[i].images.length; j++) {
                   const dataimg = await imageModel.findOne({
-                    _id: resData["data"][i].images[j],
+                    _id: resData[i].images[j],
                   });
                   if (dataimg) {
-                    resData["data"][i].images[j] = await helpers.getImageUrl(
+                    resData[i].images[j] = await helpers.getImageUrl(
                       dataimg
                     );
                   }
@@ -180,15 +231,49 @@ export default class MotelRoomController {
             // imag not array
             else {
               const dataimg = await imageModel.findOne({
-                _id: resData["data"][i].images,
+                _id: resData[i].images,
               });
               if (dataimg) {
-                resData["data"][i].images = await helpers.getImageUrl(dataimg);
+                resData[i].images = await helpers.getImageUrl(dataimg);
               }
             }
           }
         }
       }
+
+
+      // if (resData) {
+      //   const n = resData["data"].length;
+      //   for (let i = 0; i < n; i++) {
+      //     if (resData["data"][i].images) {
+      //       if (Array.isArray(resData["data"][i].images)) {
+      //         if (resData["data"][i].images.length > 0) {
+      //           for (let j = 0; j < resData["data"][i].images.length; j++) {
+      //             const dataimg = await imageModel.findOne({
+      //               _id: resData["data"][i].images[j],
+      //             });
+      //             if (dataimg) {
+      //               resData["data"][i].images[j] = await helpers.getImageUrl(
+      //                 dataimg
+      //               );
+      //             }
+      //           }
+      //         }
+      //       }
+      //       // imag not array
+      //       else {
+      //         const dataimg = await imageModel.findOne({
+      //           _id: resData["data"][i].images,
+      //         });
+      //         if (dataimg) {
+      //           resData["data"][i].images = await helpers.getImageUrl(dataimg);
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
+
+      console.log({resData})
 
       return HttpResponse.returnSuccessResponse(res, resData);
     } catch (e) {
@@ -1992,6 +2077,7 @@ export default class MotelRoomController {
   static async updateMotelRoom(motelRoomId: any, rawData: any): Promise<any> {
     let data = rawData.formData;
     console.log("data updateMotelRoom", data);
+    
     if (!data.address.address) {
       const googleMap = new GoogleMapService();
       const googleMapData = await googleMap.getAddressDetail(data.address);
@@ -2001,24 +2087,38 @@ export default class MotelRoomController {
       data["address"] = addressData._id;
     }
 
-    const { motelRoom: motelRoomModel } = global.mongoModel;
+    const { 
+      motelRoom: motelRoomModel,
+      address: addressModel,
+    } = global.mongoModel;
+
+    let motelData = await motelRoomModel.findOne({_id: motelRoomId}).lean().exec();
+    let addressLegacyId = '';
+    if(motelData) {
+      if(motelData.address) {
+        addressLegacyId = motelData.address;
+      }
+    }
 
     data["minPrice"] = parseInt(data.minPrice);
     data["maxPrice"] = parseInt(data.maxPrice);
     data["price"] = (data.minPrice + data.maxPrice) / 2;
 
-    // Find data of user
-    return await motelRoomModel
-      .findOneAndUpdate({ _id: motelRoomId }, data, { new: true })
-      .populate([
-        {
-          path: "floors",
-          populate: "rooms",
-        },
-      ])
-      .populate("address")
-      .lean()
-      .exec();
+    const motelDataN = await motelRoomModel
+    .findOneAndUpdate({ _id: motelRoomId }, data, { new: true })
+    .populate([
+      {
+        path: "floors",
+        populate: "rooms",
+      },
+    ])
+    .populate("address")
+    .lean()
+    .exec();
+
+    await addressModel.remove({_id: addressLegacyId});
+
+    return motelDataN;
   }
 
   // // Post search Find MotelRoom from Address
