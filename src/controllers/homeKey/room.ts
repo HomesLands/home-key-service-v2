@@ -1363,36 +1363,41 @@ export default class RoomController {
       )
       .exec();
 
-      const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-        return room.status;
-      });
+      // const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
+      //   return room.status;
+      // });
 
-      await floorModel
-        .findOneAndUpdate(
-          { _id: floorData._id },
-          {
-            availableRoom: roomGroup["available"]
-              ? roomGroup["available"].length
-              : 0,
-            rentedRoom: roomGroup["rented"]
-              ? roomGroup["rented"].length
-              : 0,
-            depositedRoom: roomGroup["deposited"]
-              ? roomGroup["deposited"].length
-              : 0,
-          }
-        )
-        .exec();
+      // await floorModel
+      //   .findOneAndUpdate(
+      //     { _id: floorData._id },
+      //     {
+      //       availableRoom: roomGroup["available"]
+      //         ? roomGroup["available"].length
+      //         : 0,
+      //       rentedRoom: roomGroup["rented"]
+      //         ? roomGroup["rented"].length
+      //         : 0,
+      //       depositedRoom: roomGroup["deposited"]
+      //         ? roomGroup["deposited"].length
+      //         : 0,
+      //     }
+      //   )
+      //   .exec();
 
-      let updateData = {
-        availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-        rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-        depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-      };
+      // let updateData = {
+      //   availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
+      //   rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
+      //   depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+      // };
 
-      await motelRoomModel
-        .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-        .exec();
+      // await motelRoomModel
+      //   .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
+      //   .exec();
+
+      await RoomController.updateInforMotel(
+        floorData,
+        motelRoomData,
+      );
 
       await jobModel
         .findOneAndUpdate(
@@ -1518,20 +1523,6 @@ export default class RoomController {
     next: NextFunction
   ): Promise<any> {
     try {
-      const {
-        user: userModel,
-        room: roomModel,
-        floor: floorModel,
-        motelRoom: motelRoomModel,
-        transactions: transactionsModel,
-        job: jobModel,
-        order: orderModel,
-        banking: bankingModel,
-        bill: billModel,
-      } = global.mongoModel;
-
-      // console.log("req", req["files"]);
-
       if(!req["files"] || !req["files"].file) {
         return HttpResponse.returnBadRequestResponse(
           res,
@@ -1565,20 +1556,6 @@ export default class RoomController {
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-        const contentDisposition = res.getHeader('Content-Disposition');
-        if (contentDisposition) {
-            console.log('Header Content-Disposition đã được đính kèm:', contentDisposition);
-        } else {
-            console.log('Header Content-Disposition chưa được đính kèm');
-        }
-
-        // Kiểm tra header Content-Type
-        const contentType = res.getHeader('Content-Type');
-        if (contentType) {
-            console.log('Header Content-Type đã được đính kèm:', contentType);
-        } else {
-            console.log('Header Content-Type chưa được đính kèm');
-        }
         res.send(excelBuffer);
         return;
       }
@@ -1591,6 +1568,12 @@ export default class RoomController {
       //Loại bỏ phần tử chứa khoảng trắng trong mỗi mảng con
       const cleanArray = arrData.map(subArray => subArray.filter(item => item.trim() !== ''));
       // console.log({cleanArray})
+
+      await global.agendaInstance.agenda.schedule(
+        moment().add(15, "milliseconds").toDate(),
+        "CreateAllOrderDepositForQuickDepositManyRoomsByAdmin",
+        { data: cleanArray, bankId: bankId, userId: req['userId'] }
+      );
 
       //note: check tạm qua bảng dữ liệu
       {
@@ -1706,233 +1689,232 @@ export default class RoomController {
 
 
       //Bắt đầu tạo
-      for(let i = 0; i < cleanArray.length; i++) {
-        const phoneNumber = cleanArray[i][6];
-        const phoneNumberObect = {
-          countryCode: "+84",
-          number: helpers.stripeZeroOut(phoneNumber),
-        };
+      // for(let i = 0; i < cleanArray.length; i++) {
+      //   const phoneNumber = cleanArray[i][6];
+      //   const phoneNumberObect = {
+      //     countryCode: "+84",
+      //     number: helpers.stripeZeroOut(phoneNumber),
+      //   };
 
-        let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
-        .lean()
-        .exec();
+      //   let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+      //   .lean()
+      //   .exec();
 
-        if(!userDataN) {
-          let dataSignUp = {
-            firstName: cleanArray[i][5],
-            lastName: cleanArray[i][4],
-            phoneNumber: phoneNumberObect,
-            email: cleanArray[i][9],
-            password: cleanArray[i][10],
-            confirmPassword: cleanArray[i][10],
-            role: ['customer'],
-          }
+      //   if(!userDataN) {
+      //     let dataSignUp = {
+      //       firstName: cleanArray[i][5],
+      //       lastName: cleanArray[i][4],
+      //       phoneNumber: phoneNumberObect,
+      //       email: cleanArray[i][9],
+      //       password: cleanArray[i][10],
+      //       confirmPassword: cleanArray[i][10],
+      //       role: ['customer'],
+      //     }
 
-          userDataN = await createAccountForUser(
-            dataSignUp,
-            res,
-            phoneNumber,
-          );
-        }
+      //     userDataN = await createAccountForUser(
+      //       dataSignUp,
+      //       phoneNumber,
+      //     );
+      //   }
 
-        const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+      //   const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
 
-        const floorDataN = await floorModel
-          .findOne({ rooms: roomDataN._id })
-          .populate("rooms")
-          .lean()
-          .exec();
+      //   const floorDataN = await floorModel
+      //     .findOne({ rooms: roomDataN._id })
+      //     .populate("rooms")
+      //     .lean()
+      //     .exec();
 
-        const motelRoomDataN = await motelRoomModel
-          .findOne({ floors: floorDataN._id })
-          .populate("floors owner address")
-          .lean()
-          .exec();
+      //   const motelRoomDataN = await motelRoomModel
+      //     .findOne({ floors: floorDataN._id })
+      //     .populate("floors owner address")
+      //     .lean()
+      //     .exec();
 
-        let price = roomDataN.price;
-        let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
-        let deposit = Number(price) / 2;
-        let afterCheckInCost = Number(price) * 0.5 + Number(bail);
-        let total = Number(price) + Number(bail);
+      //   let price = roomDataN.price;
+      //   let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
+      //   let deposit = Number(price) / 2;
+      //   let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+      //   let total = Number(price) + Number(bail);
 
-        let resData = await jobModel.create({
-          checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
-          user: userDataN._id,
-          room: roomDataN._id,
-          price: price,
-          bail: bail,
-          total: total,
-          afterCheckInCost: afterCheckInCost,
-          deposit: deposit,
-          // rentalPeriod: parseInt(cleanArray[i][8]),
-          rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
-          status: "pendingActivated",
+      //   let resData = await jobModel.create({
+      //     checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
+      //     user: userDataN._id,
+      //     room: roomDataN._id,
+      //     price: price,
+      //     bail: bail,
+      //     total: total,
+      //     afterCheckInCost: afterCheckInCost,
+      //     deposit: deposit,
+      //     // rentalPeriod: parseInt(cleanArray[i][8]),
+      //     rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
+      //     status: "pendingActivated",
           
-          fullName: userDataN.lastName + " " + userDataN.firstName,
-          phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
-        });
+      //     fullName: userDataN.lastName + " " + userDataN.firstName,
+      //     phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
+      //   });
 
-        let userUpdateData = {
-          $addToSet: {
-            jobs: resData._id,
-          },
-        };
+      //   let userUpdateData = {
+      //     $addToSet: {
+      //       jobs: resData._id,
+      //     },
+      //   };
 
-        //order, transaction, bill of deposit
-        const orderData = await orderModel.create({
-          user: userDataN._id,
-          job: resData._id,
-          isCompleted: true,
-          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: deposit,
-          type: "deposit",
-          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
-        });
+      //   //order, transaction, bill of deposit
+      //   const orderData = await orderModel.create({
+      //     user: userDataN._id,
+      //     job: resData._id,
+      //     isCompleted: true,
+      //     description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+      //     amount: deposit,
+      //     type: "deposit",
+      //     expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+      //   });
 
-        resData = await jobModel.findOneAndUpdate(
-          { _id: resData._id },
-          {
-            isCompleted: orderData.isCompleted,
-            $addToSet: { orders: orderData._id },
-            currentOrder: orderData._id,
-          },
-          { new: true }
-        );
+      //   resData = await jobModel.findOneAndUpdate(
+      //     { _id: resData._id },
+      //     {
+      //       isCompleted: orderData.isCompleted,
+      //       $addToSet: { orders: orderData._id },
+      //       currentOrder: orderData._id,
+      //     },
+      //     { new: true }
+      //   );
 
-        await transactionsModel.create({
-          user: userDataN._id,
-          keyPayment: getRandomHex2(),
-          keyOrder: orderData.keyOrder,
-          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-          amount: orderData.amount,
-          status: "success",
-          paymentMethod: "cash",
-          order: orderData._id,
-          banking: bankId,
-          type: "deposit",
-          motel: motelRoomDataN._id,
-          room: roomDataN._id,
-        });
+      //   await transactionsModel.create({
+      //     user: userDataN._id,
+      //     keyPayment: getRandomHex2(),
+      //     keyOrder: orderData.keyOrder,
+      //     description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+      //     amount: orderData.amount,
+      //     status: "success",
+      //     paymentMethod: "cash",
+      //     order: orderData._id,
+      //     banking: bankId,
+      //     type: "deposit",
+      //     motel: motelRoomDataN._id,
+      //     room: roomDataN._id,
+      //   });
 
-        const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+      //   const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
 
-        await billModel.create({
-          order: orderData._id,
-          idBill: orderData.keyOrder,
-          dateBill: moment().format("DD/MM/YYYY"),
-          nameMotel: motelRoomDataN.name,
-          addressMotel: motelRoomDataN.address.address,
-          nameRoom: roomDataN.name,
+      //   await billModel.create({
+      //     order: orderData._id,
+      //     idBill: orderData.keyOrder,
+      //     dateBill: moment().format("DD/MM/YYYY"),
+      //     nameMotel: motelRoomDataN.name,
+      //     addressMotel: motelRoomDataN.address.address,
+      //     nameRoom: roomDataN.name,
 
-          nameUser: userDataN.lastName + " " + userDataN.firstName,
-          phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
-          addressUser: userDataN.address,
-          emailUser: userDataN.email,
+      //     nameUser: userDataN.lastName + " " + userDataN.firstName,
+      //     phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+      //     addressUser: userDataN.address,
+      //     emailUser: userDataN.email,
 
-          nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
-          emailOwner: motelRoomDataN.owner.email,
-          phoneOwner: 
-            motelRoomDataN.owner.phoneNumber.countryCode 
-            + motelRoomDataN.owner.phoneNumber.number,
-          addressOwner: motelRoomDataN.owner.address,
-          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+      //     nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+      //     emailOwner: motelRoomDataN.owner.email,
+      //     phoneOwner: 
+      //       motelRoomDataN.owner.phoneNumber.countryCode 
+      //       + motelRoomDataN.owner.phoneNumber.number,
+      //     addressOwner: motelRoomDataN.owner.address,
+      //     nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+      //     numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+      //     nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
 
-          totalAll: orderData.amount.toFixed(2),
-          totalAndTaxAll: orderData.amount.toFixed(2),
-          totalTaxAll: 0,
-          typeTaxAll: 0,
+      //     totalAll: orderData.amount.toFixed(2),
+      //     totalAndTaxAll: orderData.amount.toFixed(2),
+      //     totalTaxAll: 0,
+      //     typeTaxAll: 0,
 
-          description: orderData.description,
+      //     description: orderData.description,
 
-          user: userDataN._id,
-          motel: motelRoomDataN._id,
-          roomRented: roomDataN._id,
+      //     user: userDataN._id,
+      //     motel: motelRoomDataN._id,
+      //     roomRented: roomDataN._id,
 
-          type: "deposit",
-        });
+      //     type: "deposit",
+      //   });
 
-        await userModel
-        .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
-        .exec();
+      //   await userModel
+      //   .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
+      //   .exec();
 
-        await roomModel
-        .findOneAndUpdate(
-          { _id: roomDataN._id },
-          { status: "deposited", rentedBy: userDataN._id },
-          { new: true }
-        )
-        .exec();
+      //   await roomModel
+      //   .findOneAndUpdate(
+      //     { _id: roomDataN._id },
+      //     { status: "deposited", rentedBy: userDataN._id },
+      //     { new: true }
+      //   )
+      //   .exec();
 
-        const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
-          return room.status;
-        });
+      //   const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
+      //     return room.status;
+      //   });
   
-        await floorModel
-          .findOneAndUpdate(
-            { _id: floorDataN._id },
-            {
-              availableRoom: roomGroup["available"]
-                ? roomGroup["available"].length
-                : 0,
-              rentedRoom: roomGroup["rented"]
-                ? roomGroup["rented"].length
-                : 0,
-              depositedRoom: roomGroup["deposited"]
-                ? roomGroup["deposited"].length
-                : 0,
-            }
-          )
-          .exec();
+      //   await floorModel
+      //     .findOneAndUpdate(
+      //       { _id: floorDataN._id },
+      //       {
+      //         availableRoom: roomGroup["available"]
+      //           ? roomGroup["available"].length
+      //           : 0,
+      //         rentedRoom: roomGroup["rented"]
+      //           ? roomGroup["rented"].length
+      //           : 0,
+      //         depositedRoom: roomGroup["deposited"]
+      //           ? roomGroup["deposited"].length
+      //           : 0,
+      //       }
+      //     )
+      //     .exec();
   
-        let updateData = {
-          availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
-          rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
-          depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
-        };
+      //   let updateData = {
+      //     availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
+      //     rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
+      //     depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
+      //   };
   
-        await motelRoomModel
-          .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
-          .exec();
+      //   await motelRoomModel
+      //     .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
+      //     .exec();
   
-        await jobModel
-          .findOneAndUpdate(
-            { _id: resData._id },
-            {
-              isCompleted: true,
-              status: "pendingActivated",
-            },
-            { new: true }
-          )
-          .exec();
+      //   await jobModel
+      //     .findOneAndUpdate(
+      //       { _id: resData._id },
+      //       {
+      //         isCompleted: true,
+      //         status: "pendingActivated",
+      //       },
+      //       { new: true }
+      //     )
+      //     .exec();
   
-        const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+      //   const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
   
-        await NotificationController.createNotification({
-          title: "Thông báo kích hoạt hợp đồng",
-          content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
-          ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+      //   await NotificationController.createNotification({
+      //     title: "Thông báo kích hoạt hợp đồng",
+      //     content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+      //     ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
   
-          user: resData.user._id,
-          isRead: false,
-          type: "activeJob",
-          url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
-          tag: "Job",
-          contentTag: resData._id,
-        });
+      //     user: resData.user._id,
+      //     isRead: false,
+      //     type: "activeJob",
+      //     url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
+      //     tag: "Job",
+      //     contentTag: resData._id,
+      //   });
   
-        await global.agendaInstance.agenda.schedule(
-          moment(resData.checkInTime)
-            .add(7, "days")
-            .endOf("day")
-            .toDate(),
-          "CheckJobStatus",
-          { jobId: resData._id }
-        );
-      }
+      //   await global.agendaInstance.agenda.schedule(
+      //     moment(resData.checkInTime)
+      //       .add(7, "days")
+      //       .endOf("day")
+      //       .toDate(),
+      //     "CheckJobStatus",
+      //     { jobId: resData._id }
+      //   );
+      // }
 
-      return HttpResponse.returnSuccessResponse(res, "Hoàn thành tạo đặt cọc từ file");
+      return HttpResponse.returnSuccessResponse(res, "Dữ liệu hợp lệ, vui lòng chờ trong giây lát");
     } catch (error) {
       next(error);
     }
@@ -2022,21 +2004,7 @@ export default class RoomController {
 
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-
-        const contentDisposition = res.getHeader('Content-Disposition');
-        if (contentDisposition) {
-            console.log('Header Content-Disposition đã được đính kèm:', contentDisposition);
-        } else {
-            console.log('Header Content-Disposition chưa được đính kèm');
-        }
-
-        // Kiểm tra header Content-Type
-        const contentType = res.getHeader('Content-Type');
-        if (contentType) {
-            console.log('Header Content-Type đã được đính kèm:', contentType);
-        } else {
-            console.log('Header Content-Type chưa được đính kèm');
-        }
+        
         res.send(excelBuffer);
         return;
       }
@@ -2082,7 +2050,6 @@ export default class RoomController {
 
           userDataN = await createAccountForUser(
             dataSignUp,
-            res,
             phoneNumber,
           );
         }
@@ -2299,7 +2266,7 @@ export default class RoomController {
             }
             let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
 
-            let orderDataMonthly = await createOrderHistory(
+            let orderDataMonthly = await RoomController.createOrderHistory(
               resData,
               roomDataN,
               motelRoomDataN,
@@ -2345,7 +2312,7 @@ export default class RoomController {
               }
               let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
 
-              let orderDataMonthly = await createOrderHistory(
+              let orderDataMonthly = await RoomController.createOrderHistory(
                 resData,
                 roomDataN,
                 motelRoomDataN,
@@ -2509,30 +2476,14 @@ export default class RoomController {
     next: NextFunction
   ): Promise<any> {
     try {
-      const {
-        user: userModel,
-        room: roomModel,
-        floor: floorModel,
-        motelRoom: motelRoomModel,
-        transactions: transactionsModel,
-        job: jobModel,
-        order: orderModel,
-        banking: bankingModel,
-        bill: billModel,
-      } = global.mongoModel;
-
-      // console.log("req", req["files"]);
-
       if(!req["files"] || !req["files"].file) {
         return HttpResponse.returnBadRequestResponse(
           res,
           "Vui lòng tải file lên"
-        )
+        );
       }
 
       const bankId = req.body.bankId;
-
-      console.log("bankId", bankId);
 
       const file = req["files"].file as UploadedFile;
 
@@ -2543,6 +2494,7 @@ export default class RoomController {
       const dataN = reader.utils.sheet_to_json(worksheet);
 
       const dataValidate: DataRow[] = reader.utils.sheet_to_json<DataRow>(worksheet, { defval: "" });
+      console.log({dataValidate});
       const validationErrors = await RoomController.validateDataFileExcelForQuickRentMany(dataValidate);
 
       if (validationErrors.length > 0) {
@@ -2556,20 +2508,6 @@ export default class RoomController {
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-        const contentDisposition = res.getHeader('Content-Disposition');
-        if (contentDisposition) {
-            console.log('Header Content-Disposition đã được đính kèm:', contentDisposition);
-        } else {
-            console.log('Header Content-Disposition chưa được đính kèm');
-        }
-
-        // Kiểm tra header Content-Type
-        const contentType = res.getHeader('Content-Type');
-        if (contentType) {
-            console.log('Header Content-Type đã được đính kèm:', contentType);
-        } else {
-            console.log('Header Content-Type chưa được đính kèm');
-        }
         res.send(excelBuffer);
         return;
       }
@@ -2584,8 +2522,8 @@ export default class RoomController {
       // console.log({cleanArray})
 
       await global.agendaInstance.agenda.schedule(
-        moment().add(15, "milliseconds"),
-        "CreateAllOrderForQuickRentByAdmin",
+        moment().add(15, "milliseconds").toDate(),
+        "CreateAllOrderForQuickRentManyRoomsByAdmin",
         { data: cleanArray, bankId: bankId, userId: req['userId'] }
       );
 
@@ -2622,7 +2560,6 @@ export default class RoomController {
   
         //     userDataN = await createAccountForUser(
         //       dataSignUp,
-        //       res,
         //       phoneNumber,
         //     );
         //   }
@@ -3094,22 +3031,6 @@ export default class RoomController {
         order: orderModel,
       } = global.mongoModel;
 
-      // let phoneNumber = "0999999995";
-      // const checkInTime = "2024-07-19";
-      // const bankingId = "65828a7fac6d1a57e81be5a2";
-      // const price = 83888;
-      // const bail = 802382;
-      // const total = 829083;
-      // const deposit = 82323;
-      // const afterCheckInCost = 823982;
-      // const rentalPeriod = 2;
-      // const roomId = "6684ca384ee179a284e02005";
-      // const firstName = "testt";
-      // const lastName = "account";
-      // const email = "emailTest@gmail.com";
-      // const password = "123456";
-      // const confirmPassword = "123456";
-
       const { body: data } = req;
 
       const {
@@ -3466,66 +3387,20 @@ export default class RoomController {
       });
 
       //create history monthly order
-      
-      if(checkInDay.clone().year() < timeMoment.clone().year()) {
-        let monthPlus: number = 0;
-        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
-          //create order
-          let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-
-          //first month
-          if(monthPlus === 0) {
-            startTime = checkInDay.clone().startOf("days");
-          }
-          let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
-
-          let orderDataMonthly = await createOrderHistory(
-            resData,
-            roomData,
-            motelRoomData,
-            startTime,
-            endTime,
-            bankId,
-          );
-
-          await jobModel.findOneAndUpdate(
-            { _id: resData._id },
-            {
-              $addToSet: { orders: orderDataMonthly._id },
-              currentOrder: orderDataMonthly._id,
-              status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
-              isActived: true,
-            }
-          );
-
-          monthPlus++;
-        }
-
-        //tính cho tháng hiện tại vào đầu tháng sau
-        await global.agendaInstance.agenda.schedule(
-          timeMoment.clone()
-            .startOf("month")
-            .add(1, "months")
-            .toDate(),
-          "CreateOrderForNextMonth",
-          { jobId: resData._id }
-        );
-
-      } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
-        if (checkInDay.clone().month() <  timeMoment.clone().month()) {
-          // tạo order trước đó
+      if(timeMoment.clone().diff(checkInDay.clone(), "months") < 2) {
+        if(checkInDay.clone().year() < timeMoment.clone().year()) {
           let monthPlus: number = 0;
           while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
             //create order
             let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-
+  
             //first month
             if(monthPlus === 0) {
               startTime = checkInDay.clone().startOf("days");
             }
             let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
-
-            let orderDataMonthly = await createOrderHistory(
+  
+            let orderDataMonthly = await RoomController.createOrderHistory(
               resData,
               roomData,
               motelRoomData,
@@ -3533,7 +3408,7 @@ export default class RoomController {
               endTime,
               bankId,
             );
-
+  
             await jobModel.findOneAndUpdate(
               { _id: resData._id },
               {
@@ -3543,10 +3418,10 @@ export default class RoomController {
                 isActived: true,
               }
             );
-
+  
             monthPlus++;
           }
-
+  
           //tính cho tháng hiện tại vào đầu tháng sau
           await global.agendaInstance.agenda.schedule(
             timeMoment.clone()
@@ -3556,18 +3431,78 @@ export default class RoomController {
             "CreateOrderForNextMonth",
             { jobId: resData._id }
           );
-
-        } else {
-          //không cần tạo lịch sử hóa đơn
-          await global.agendaInstance.agenda.schedule(
-            timeMoment.clone()
-              .startOf("month")
-              .add("1", "months")
-              .toDate(),
-            "CreateFirstMonthOrder",
-            { jobId: resData._id }
-          );
+  
+        } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
+          if (checkInDay.clone().month() <  timeMoment.clone().month()) {
+            // tạo order trước đó
+            let monthPlus: number = 0;
+            while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+              //create order
+              let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+  
+              //first month
+              if(monthPlus === 0) {
+                startTime = checkInDay.clone().startOf("days");
+              }
+              let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+  
+              let orderDataMonthly = await RoomController.createOrderHistory(
+                resData,
+                roomData,
+                motelRoomData,
+                startTime,
+                endTime,
+                bankId,
+              );
+  
+              await jobModel.findOneAndUpdate(
+                { _id: resData._id },
+                {
+                  $addToSet: { orders: orderDataMonthly._id },
+                  currentOrder: orderDataMonthly._id,
+                  status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+                  isActived: true,
+                }
+              );
+  
+              monthPlus++;
+            }
+  
+            //tính cho tháng hiện tại vào đầu tháng sau
+            await global.agendaInstance.agenda.schedule(
+              timeMoment.clone()
+                .startOf("month")
+                .add(1, "months")
+                .toDate(),
+              "CreateOrderForNextMonth",
+              { jobId: resData._id }
+            );
+  
+          } else {
+            //không cần tạo lịch sử hóa đơn
+            await global.agendaInstance.agenda.schedule(
+              timeMoment.clone()
+                .startOf("month")
+                .add("1", "months")
+                .toDate(),
+              "CreateFirstMonthOrder",
+              { jobId: resData._id }
+            );
+          }
         }
+      } else {
+        await global.agendaInstance.agenda.schedule(
+          moment().add(5, "milliseconds").toDate(),
+          "CreateAllOrderMonthlyForQuickRentOneRoomByAdmin",
+          {
+            jobId: resData._id,
+            roomId: roomData._id,
+            motelRoomId: motelRoomData._id,
+            bankId: bankId,
+            checkInDay: checkInDay.toDate(),
+            timeMoment: timeMoment.toDate(),
+          }
+        )
       }
 
       await roomModel
@@ -3578,36 +3513,41 @@ export default class RoomController {
       )
       .exec();
 
-      const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-        return room.status;
-      });
+      await RoomController.updateInforMotel(
+        floorData,
+        motelRoomData,
+      );
 
-      await floorModel
-        .findOneAndUpdate(
-          { _id: floorData._id },
-          {
-            availableRoom: roomGroup["available"]
-              ? roomGroup["available"].length
-              : 0,
-            rentedRoom: roomGroup["rented"]
-              ? roomGroup["rented"].length
-              : 0,
-            depositedRoom: roomGroup["deposited"]
-              ? roomGroup["deposited"].length
-              : 0,
-          }
-        )
-        .exec();
+      // const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
+      //   return room.status;
+      // });
 
-      let updateData = {
-        availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-        rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-        depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-      };
+      // await floorModel
+      //   .findOneAndUpdate(
+      //     { _id: floorData._id },
+      //     {
+      //       availableRoom: roomGroup["available"]
+      //         ? roomGroup["available"].length
+      //         : 0,
+      //       rentedRoom: roomGroup["rented"]
+      //         ? roomGroup["rented"].length
+      //         : 0,
+      //       depositedRoom: roomGroup["deposited"]
+      //         ? roomGroup["deposited"].length
+      //         : 0,
+      //     }
+      //   )
+      //   .exec();
 
-      await motelRoomModel
-        .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-        .exec();
+      // let updateData = {
+      //   availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
+      //   rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
+      //   depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+      // };
+
+      // await motelRoomModel
+      //   .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
+      //   .exec();
 
       await jobModel
         .findOneAndUpdate(
@@ -3621,50 +3561,7 @@ export default class RoomController {
         )
         .exec();
 
-      // const userDataRes = await userModel.findOne({_id: resData.user}).lean().exec();
-      // if(userDataRes) {
-      //   if(userDataRes.email) {
-      //     const transporter = nodemailer.createTransport({
-      //       service: 'gmail',
-      //       auth: {
-      //         user: `${process.env.Gmail_USER}`,
-      //         pass: `${process.env.Gmail_PASS}`
-      //       }
-      //     });    
-
-      //     const mailOptions = {
-      //       from: `${process.env.Gmail_USER}`,
-      //       // to: 'quyetthangmarvel@gmail.com',
-      //       to: userDataRes.email,  // thay bằng mail admin
-      //       subject: `THÔNG BÁO KÍCH HOẠT HỢP ĐỒNG`,
-      //       text: `Vui lòng kích hoạt hợp đồng, hạn cuối: ${activeExpireTime}.`,
-      //     };
-
-      //     transporter.sendMail(mailOptions, function (error, info) {
-      //       if (error) {
-      //         console.error(error);
-      //       } else {
-      //         // console.log('Email đã được gửi: ' + info.response);
-      //       }
-      //     });
-      //   }
-      // }
-
-      // passport.authenticate("local", { session: false }, async (err, rs) => {
-      //   req.body.phoneNumber = {
-      //     countryCode: "+84",
-      //     number: helpers.stripeZeroOut(phoneNumber),
-      //   };
-
-      //   console.log("nếu có lỗi: ", err)
-      // })(req, res, next);
-
-      return HttpResponse.returnSuccessResponse(
-        res,
-        resData
-      )
-
-
+      return HttpResponse.returnSuccessResponse(res, resData);
     } catch (error) {
       next(error);
     }
@@ -4660,6 +4557,22 @@ export default class RoomController {
               if(!data[i][' password ']) {
                 rowErrors.password = 'Tài khoản không tồn tại, vui lòng thêm mật khẩu để tạo tài khoản';            
               }
+
+              let dataSignUp = {
+                firstName: data[i][' firstName '],
+                lastName: data[i][' lastName '],
+                phoneNumber: phoneNumberObect,
+                email: data[i][' email '],
+                password: data[i][' password '],
+                confirmPassword: data[i][' password '],
+                role: ['customer'],
+              }
+
+              const validateResults = await userModel.validateData(["signUp"], dataSignUp);
+              const errorList = normalizeError(validateResults);
+              if(errorList.length > 0) {
+                rowErrors.dataSignUp = "Tài khoản không tồn tại, dữ liệu tạo tài khoản mới không hợp lệ"
+              }
     
               if(data[i][' email ']) {
                 const existingUserEmail = await userModel
@@ -4905,6 +4818,22 @@ export default class RoomController {
               if(!data[i][' password ']) {
                 rowErrors.password = 'Tài khoản không tồn tại, vui lòng thêm mật khẩu để tạo tài khoản';            
               }
+
+              let dataSignUp = {
+                firstName: data[i][' firstName '],
+                lastName: data[i][' lastName '],
+                phoneNumber: phoneNumberObect,
+                email: data[i][' email '],
+                password: data[i][' password '],
+                confirmPassword: data[i][' password '],
+                role: ['customer'],
+              }
+
+              const validateResults = await userModel.validateData(["signUp"], dataSignUp);
+              const errorList = normalizeError(validateResults);
+              if(errorList.length > 0) {
+                rowErrors.dataSignUp = "Tài khoản không tồn tại, dữ liệu tạo tài khoản mới không hợp lệ"
+              }
               
               if(data[i][' email ']) {
                 const existingUserEmail = await userModel
@@ -5014,6 +4943,7 @@ export default class RoomController {
               }
             }
         }
+        console.log({rowErrors})
         if (Object.keys(rowErrors).length > 0) {
           errors.push({ row: i + 1, errors: rowErrors });
         }
@@ -5025,213 +4955,266 @@ export default class RoomController {
     }
   }
 
+  static async createOrderHistory(
+    jobData: any,
+    roomData: any,
+    motelRoomData: any,
+    startTime: moment.Moment,
+    endTime: moment.Moment,
+    bankId: string,
+  ): Promise<any> {
+    const { 
+      order: orderModel, 
+      totalKwh: totalKwhModel,
+      transactions: transactionsModel,
+      banking: BankingModel,
+      optionsType: OptionsTypeModel,
+      bill: billModel,
+      user: userModel,
+    } = global.mongoModel;
+  
+    const start = startTime.clone().format("YYYY-MM-DD");
+    const end = endTime.clone().clone().format("YYYY-MM-DD");
+  
+    const expireTime = endTime.clone().add(15, "days");
+  
+    let dataElectricAll = await EnergyController.calculateElectricUsedDayToDayHaveLabelTime(roomData._id, start, end);
+  
+    let electricNumber = 0;
+    let labelTime: string[] = [];
+    let kWhData: number[] = [];
+    if (dataElectricAll === null) {
+      electricNumber = 0;
+    } else {
+      electricNumber = dataElectricAll.totalkWhTime;
+      labelTime = dataElectricAll.labelTime;
+      kWhData = dataElectricAll.kWhData;
+    }
+  
+    const electricityPricePerKwh = roomData.electricityPrice;
+  
+    const electricPrice = electricNumber * electricityPricePerKwh;
+  
+    let numberDayStay = startTime.clone().daysInMonth();
+  
+    if(moment(jobData.checkInTime).startOf("months").isSame(startTime.clone().startOf("months"))) {
+      numberDayStay = (moment(jobData.checkInTime).endOf("month").diff(moment(jobData.checkInTime), "days") + 1);
+    }
+  
+    const dayOfMon = startTime.clone().daysInMonth();
+    const waterPrice = (roomData.waterPrice * roomData.person);
+    const servicePrice = roomData.garbagePrice;
+    const vehiclePrice = roomData.wifiPrice * roomData.vihicle;
+    const roomPrice = (roomData.price / dayOfMon) * numberDayStay;
+    const wifiPriceN = roomData.wifiPriceN * roomData.person;
+    const amount = roomPrice + vehiclePrice + servicePrice + waterPrice + electricPrice + wifiPriceN;
+  
+    const orderData = await orderModel.create({
+      user: jobData.user,
+      job: jobData._id,
+      isCompleted: true,
+      numberDayStay: numberDayStay,
+      electricNumber: electricNumber,
+      electricPrice: electricPrice,
+      waterPrice: waterPrice,
+      servicePrice: servicePrice,
+      vehiclePrice: vehiclePrice,
+      roomPrice: roomPrice,
+      wifiPrice: wifiPriceN,
+      description: `Tiền phòng tháng ${startTime.clone().format("MM/YYYY")}`,
+      amount: amount,
+      type: "monthly",
+      startTime: startTime.clone().toDate(),
+      endTime: endTime.clone().toDate(),
+      expireTime: expireTime.toDate(),
+    });
+  
+    await totalKwhModel.create({
+      order: orderData._id,
+      kWhData: kWhData,
+      labelTime: labelTime,
+    });
+  
+    const transactionsData = await transactionsModel.create({
+      user: jobData.user,
+      keyPayment: getRandomHex2(),
+      keyOrder: orderData.keyOrder,
+      description: orderData.description,
+      amount: orderData.amount,
+      status: "success",
+      paymentMethod: "cash",
+      order: orderData._id,
+      banking: bankId,
+      type: "monthly",
+      motel: motelRoomData._id,
+      room: roomData._id,
+    });
+  
+    const electricity = await OptionsTypeModel.create({
+      expense: "Chi Phí Điện",
+      type: orderData.electricNumber.toString(),
+      unitPrice: roomData.electricityPrice.toFixed(2),
+      total: orderData.electricPrice.toFixed(2),
+    });
+  
+    const garbage = await OptionsTypeModel.create({
+      expense: "Chi Dịch Vụ",
+      type: "1",
+      unitPrice: roomData.garbagePrice.toFixed(2),
+      total: orderData.servicePrice.toFixed(2),
+    });
+  
+    const water = await OptionsTypeModel.create({
+      expense: "Chi Phí Nước",
+      type: roomData.person.toString(),
+      unitPrice: roomData.waterPrice.toFixed(2),
+      total: orderData.waterPrice.toFixed(2),
+    });
+    const vehicle = await OptionsTypeModel.create({
+      expense: "Chi Phí Xe",
+      type: roomData.vihicle.toString(),
+      unitPrice: roomData.wifiPrice.toFixed(2),
+      total: orderData.vehiclePrice.toFixed(2),
+    });
+  
+    const wifi = await OptionsTypeModel.create({
+      expense: "Chi Phí Wifi",
+      type: roomData.person.toString(),
+      unitPrice: roomData.wifiPriceN.toFixed(2),
+      total: orderData.wifiPrice.toFixed(2),
+    });
+  
+    const other = await OptionsTypeModel.create({
+      expense: "Chi Phí Khác",
+      type: "1",
+      unitPrice: "0",
+      total: "0",
+    });
+  
+    const room = await OptionsTypeModel.create({
+      expense: "Chi Phí Phòng",
+      type: orderData.numberDayStay.toString(),
+      unitPrice: roomData.price.toFixed(2),
+      total: orderData.roomPrice.toFixed(2),
+    });
+  
+    const userData = await userModel.findOne({ _id: jobData.user }).lean().exec();
+  
+    const bankData = await BankingModel.findOne({ _id: transactionsData.banking }).lean().exec();
+  
+    await billModel.create({
+      order: orderData._id,
+      idBill: orderData.keyOrder,
+      dateBill: startTime.clone().add(1, "months").startOf("months").format("DD/MM/YYYY"), //note
+      nameMotel: motelRoomData.name,
+      addressMotel: motelRoomData.address.address,
+      nameRoom: roomData.name,
+  
+      nameUser: userData.lastName + " " + userData.firstName,
+  
+      phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
+      addressUser: userData.address,
+      emailUser: userData.email,
+  
+      nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
+      emailOwner: motelRoomData.owner.email,
+      phoneOwner: 
+        motelRoomData.owner.phoneNumber.countryCode
+        + motelRoomData.owner.phoneNumber.number,
+      addressOwner: motelRoomData.owner.address,
+      nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+      numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+      nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+  
+      totalAll: orderData.amount.toFixed(2),
+      totalAndTaxAll: orderData.amount.toFixed(2),
+      totalTaxAll: 0,
+      typeTaxAll: 0,
+  
+      description: orderData.description,
+  
+      electricity: electricity,
+      garbage: garbage,
+      water: water,
+      wifi: wifi,
+      vehicle: vehicle,
+      other: other,
+      room: room,
+  
+      startTime: orderData.startTime,
+      endTime: orderData.endTime,
+  
+      user: jobData.user,
+      motel: motelRoomData._id,
+      roomRented: roomData._id,
+  
+      type: "monthly",
+    });
+    
+    return orderData;
+  }
+
+  static async updateInforMotel(
+    floorData: any,
+    motelRoomData: any,
+  ): Promise<any> {
+    try {
+      const {
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+      } = global.mongoModel;
+
+      const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
+        return room.status;
+      });
+
+      await floorModel
+        .findOneAndUpdate(
+          { _id: floorData._id },
+          {
+            availableRoom: roomGroup["available"]
+              ? roomGroup["available"].length
+              : 0,
+            soonExpireContractRoom: roomGroup["soonExpireContract"]
+              ? roomGroup["soonExpireContract"].length
+              : 0,
+            rentedRoom: roomGroup["rented"]
+              ? roomGroup["rented"].length
+              : 0,
+            depositedRoom: roomGroup["deposited"]
+              ? roomGroup["deposited"].length
+              : 0,
+          }
+        )
+        .exec();
+
+      let updateData = {
+        availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
+        rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
+        depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+        soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
+      };
+
+      await motelRoomModel
+        .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
+        .exec();
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   /* -------------------------------------------------------------------------- */
   /*                             END HELPER FUNCTION                            */
   /* -------------------------------------------------------------------------- */
 }
 
-async function createOrderHistory(
-  jobData: any,
-  roomData: any,
-  motelRoomData: any,
-  startTime: moment.Moment,
-  endTime: moment.Moment,
-  bankId: string,
-): Promise<any> {
-  const { 
-    order: orderModel, 
-    totalKwh: totalKwhModel,
-    transactions: transactionsModel,
-    banking: BankingModel,
-    optionsType: OptionsTypeModel,
-    bill: billModel,
-    user: userModel,
-  } = global.mongoModel;
 
-  const start = startTime.clone().format("YYYY-MM-DD");
-  const end = endTime.clone().clone().format("YYYY-MM-DD");
 
-  const expireTime = endTime.clone().add(15, "days");
-
-  let dataElectricAll = await EnergyController.calculateElectricUsedDayToDayHaveLabelTime(roomData._id, start, end);
-
-  let electricNumber = 0;
-  let labelTime: string[] = [];
-  let kWhData: number[] = [];
-  if (dataElectricAll === null) {
-    electricNumber = 0;
-  } else {
-    electricNumber = dataElectricAll.totalkWhTime;
-    labelTime = dataElectricAll.labelTime;
-    kWhData = dataElectricAll.kWhData;
-  }
-
-  const electricityPricePerKwh = roomData.electricityPrice;
-
-  const electricPrice = electricNumber * electricityPricePerKwh;
-
-  let numberDayStay = startTime.clone().daysInMonth();
-
-  if(moment(jobData.checkInTime).startOf("months").isSame(startTime.clone().startOf("months"))) {
-    numberDayStay = (moment(jobData.checkInTime).endOf("month").diff(moment(jobData.checkInTime), "days") + 1);
-  }
-
-  const dayOfMon = startTime.clone().daysInMonth();
-  const waterPrice = (roomData.waterPrice * roomData.person);
-  const servicePrice = roomData.garbagePrice;
-  const vehiclePrice = roomData.wifiPrice * roomData.vihicle;
-  const roomPrice = (roomData.price / dayOfMon) * numberDayStay;
-  const wifiPriceN = roomData.wifiPriceN * roomData.person;
-  const amount = roomPrice + vehiclePrice + servicePrice + waterPrice + electricPrice + wifiPriceN;
-
-  const orderData = await orderModel.create({
-    user: jobData.user,
-    job: jobData._id,
-    isCompleted: true,
-    numberDayStay: numberDayStay,
-    electricNumber: electricNumber,
-    electricPrice: electricPrice,
-    waterPrice: waterPrice,
-    servicePrice: servicePrice,
-    vehiclePrice: vehiclePrice,
-    roomPrice: roomPrice,
-    wifiPrice: wifiPriceN,
-    description: `Tiền phòng tháng ${startTime.clone().format("MM/YYYY")}`,
-    amount: amount,
-    type: "monthly",
-    startTime: startTime.clone().toDate(),
-    endTime: endTime.clone().toDate(),
-    expireTime: expireTime.toDate(),
-  });
-
-  await totalKwhModel.create({
-    order: orderData._id,
-    kWhData: kWhData,
-    labelTime: labelTime,
-  });
-
-  const transactionsData = await transactionsModel.create({
-    user: jobData.user,
-    keyPayment: getRandomHex2(),
-    keyOrder: orderData.keyOrder,
-    description: orderData.description,
-    amount: orderData.amount,
-    status: "success",
-    paymentMethod: "cash",
-    order: orderData._id,
-    banking: bankId,
-    type: "monthly",
-    motel: motelRoomData._id,
-    room: roomData._id,
-  });
-
-  const electricity = await OptionsTypeModel.create({
-    expense: "Chi Phí Điện",
-    type: orderData.electricNumber.toString(),
-    unitPrice: roomData.electricityPrice.toFixed(2),
-    total: orderData.electricPrice.toFixed(2),
-  });
-
-  const garbage = await OptionsTypeModel.create({
-    expense: "Chi Dịch Vụ",
-    type: "1",
-    unitPrice: roomData.garbagePrice.toFixed(2),
-    total: orderData.servicePrice.toFixed(2),
-  });
-
-  const water = await OptionsTypeModel.create({
-    expense: "Chi Phí Nước",
-    type: roomData.person.toString(),
-    unitPrice: roomData.waterPrice.toFixed(2),
-    total: orderData.waterPrice.toFixed(2),
-  });
-  const vehicle = await OptionsTypeModel.create({
-    expense: "Chi Phí Xe",
-    type: roomData.vihicle.toString(),
-    unitPrice: roomData.wifiPrice.toFixed(2),
-    total: orderData.vehiclePrice.toFixed(2),
-  });
-
-  const wifi = await OptionsTypeModel.create({
-    expense: "Chi Phí Wifi",
-    type: roomData.person.toString(),
-    unitPrice: roomData.wifiPriceN.toFixed(2),
-    total: orderData.wifiPrice.toFixed(2),
-  });
-
-  const other = await OptionsTypeModel.create({
-    expense: "Chi Phí Khác",
-    type: "1",
-    unitPrice: "0",
-    total: "0",
-  });
-
-  const room = await OptionsTypeModel.create({
-    expense: "Chi Phí Phòng",
-    type: orderData.numberDayStay.toString(),
-    unitPrice: roomData.price.toFixed(2),
-    total: orderData.roomPrice.toFixed(2),
-  });
-
-  const userData = await userModel.findOne({ _id: jobData.user }).lean().exec();
-
-  const bankData = await BankingModel.findOne({ _id: transactionsData.banking }).lean().exec();
-
-  await billModel.create({
-    order: orderData._id,
-    idBill: orderData.keyOrder,
-    dateBill: startTime.clone().add(1, "months").startOf("months").format("DD/MM/YYYY"), //note
-    nameMotel: motelRoomData.name,
-    addressMotel: motelRoomData.address.address,
-    nameRoom: roomData.name,
-
-    nameUser: userData.lastName + " " + userData.firstName,
-
-    phoneUser: userData.phoneNumber.countryCode + userData.phoneNumber.number,
-    addressUser: userData.address,
-    emailUser: userData.email,
-
-    nameOwner: motelRoomData.owner.lastName + motelRoomData.owner.firstName,
-    emailOwner: motelRoomData.owner.email,
-    phoneOwner: 
-      motelRoomData.owner.phoneNumber.countryCode
-      + motelRoomData.owner.phoneNumber.number,
-    addressOwner: motelRoomData.owner.address,
-    nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-    numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-    nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
-
-    totalAll: orderData.amount.toFixed(2),
-    totalAndTaxAll: orderData.amount.toFixed(2),
-    totalTaxAll: 0,
-    typeTaxAll: 0,
-
-    description: orderData.description,
-
-    electricity: electricity,
-    garbage: garbage,
-    water: water,
-    wifi: wifi,
-    vehicle: vehicle,
-    other: other,
-    room: room,
-
-    startTime: orderData.startTime,
-    endTime: orderData.endTime,
-
-    user: jobData.user,
-    motel: motelRoomData._id,
-    roomRented: roomData._id,
-
-    type: "monthly",
-  });
-  
-  return orderData;
-}
-
+// the data signup validated
 async function createAccountForUser(
   data: any,
-  res,
   phoneNumber,
 ): Promise<any> {
   let dataSignUp = {
@@ -5248,17 +5231,6 @@ async function createAccountForUser(
   const {
     user: userModel,
   } = global.mongoModel;
-
-  // Validate input data for signUp
-  const validateResults = await userModel.validateData(["signUp"], dataSignUp);
-
-  // Parse error list form validation results
-  const errorList = normalizeError(validateResults);
-
-  // Validation Error
-  if (errorList.length > 0) {
-    return HttpResponse.returnBadRequestResponse(res, errorList);
-  }
 
   // active
   dataSignUp["active"] = true;
@@ -5310,6 +5282,7 @@ interface DataRow {
   email: string;
   checkInTime: string;
 }
+
 
 interface ValidationError {
   row: number;

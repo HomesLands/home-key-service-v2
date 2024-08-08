@@ -884,6 +884,9 @@ export default class JobController {
             availableRoom: roomGroup["available"]
               ? roomGroup["available"].length
               : 0,
+            soonExpireContractRoom: roomGroup["soonExpireContract"]
+              ? roomGroup["soonExpireContract"].length
+              : 0,
             rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
             depositedRoom: roomGroup["deposited"]
               ? roomGroup["deposited"].length
@@ -902,6 +905,7 @@ export default class JobController {
         availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
         rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
         depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+        soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
       };
 
       await motelRoomModel
@@ -1302,6 +1306,9 @@ export default class JobController {
             availableRoom: roomGroup["available"]
               ? roomGroup["available"].length
               : 0,
+            soonExpireContractRoom: roomGroup["soonExpireContract"]
+              ? roomGroup["soonExpireContract"].length
+              : 0,
             rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
             depositedRoom: roomGroup["deposited"]
               ? roomGroup["deposited"].length
@@ -1320,6 +1327,7 @@ export default class JobController {
         availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
         rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
         depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
+        soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
       };
 
       await motelRoomModel
