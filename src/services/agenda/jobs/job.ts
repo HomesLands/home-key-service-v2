@@ -5,6 +5,7 @@ var nodemailer = require('nodemailer');
 
 import JobController from "../../../controllers/homeKey/job.controller";
 import EnergyController from "../../../controllers/homeKey/energy.controller";
+import RoomController from "../../../controllers/homeKey/room";
 import NotificationController from "../../../controllers/homeKey/notification";
 import { helpers, jwtHelper, normalizeError } from "../../../utils";
 
@@ -436,29 +437,6 @@ export default (agenda) => {
               .populate("rooms")
               .lean()
               .exec();
-            const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-              return room.status;
-            });
-
-            await floorModel
-              .findOneAndUpdate(
-                { _id: floorData._id },
-                {
-                  availableRoom: roomGroup["available"]
-                    ? roomGroup["available"].length
-                    : 0,
-                  soonExpireContractRoom: roomGroup["soonExpireContract"]
-                    ? roomGroup["soonExpireContract"].length
-                    : 0,
-                  rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                  depositedRoom: roomGroup["deposited"]
-                    ? roomGroup["deposited"].length
-                    : 0,
-                }
-              )
-              .exec();
-
-            //cập nhật lại motel
 
             let motelRoomData = await motelRoomModel
               .findOne({ floors: floorData._id })
@@ -466,17 +444,10 @@ export default (agenda) => {
               .lean()
               .exec();
 
-            let updateData = {
-              availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-              rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-              depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-              soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-            };
-
-            await motelRoomModel
-              .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-              .exec();
-
+            await RoomController.updateInforMotel(
+              floorData,
+              motelRoomData,
+            );
 
             //Xóa job khỏi user
             let userUpdateData = {
@@ -696,35 +667,11 @@ export default (agenda) => {
           })
             .exec()
 
-          //cập nhật lại floor
           let floorData = await floorModel
             .findOne({ rooms: roomId })
             .populate("rooms")
             .lean()
             .exec();
-          const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-            return room.status;
-          });
-
-          await floorModel
-            .findOneAndUpdate(
-              { _id: floorData._id },
-              {
-                availableRoom: roomGroup["available"]
-                  ? roomGroup["available"].length
-                  : 0,
-                soonExpireContractRoom: roomGroup["soonExpireContract"]
-                  ? roomGroup["soonExpireContract"].length
-                  : 0,
-                rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                depositedRoom: roomGroup["deposited"]
-                  ? roomGroup["deposited"].length
-                  : 0,
-              }
-            )
-            .exec();
-
-          //cập nhật lại motel
 
           let motelRoomData = await motelRoomModel
             .findOne({ floors: floorData._id })
@@ -732,16 +679,10 @@ export default (agenda) => {
             .lean()
             .exec();
 
-          let updateData = {
-            availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-            rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-            depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-            soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-          };
-
-          await motelRoomModel
-            .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-            .exec();
+          await RoomController.updateInforMotel(
+            floorData,
+            motelRoomData,
+          );
 
           //Xóa job khỏi user
           let userUpdateData = {
@@ -1075,53 +1016,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -1280,35 +1190,11 @@ export default (agenda) => {
             })
               .exec()
 
-            //cập nhật lại floor
             let floorData = await floorModel
               .findOne({ rooms: roomId })
               .populate("rooms")
               .lean()
               .exec();
-            const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-              return room.status;
-            });
-
-            await floorModel
-              .findOneAndUpdate(
-                { _id: floorData._id },
-                {
-                  availableRoom: roomGroup["available"]
-                    ? roomGroup["available"].length
-                    : 0,
-                  soonExpireContractRoom: roomGroup["soonExpireContract"]
-                    ? roomGroup["soonExpireContract"].length
-                    : 0,
-                  rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                  depositedRoom: roomGroup["deposited"]
-                    ? roomGroup["deposited"].length
-                    : 0,
-                }
-              )
-              .exec();
-
-            //cập nhật lại motel
 
             let motelRoomData = await motelRoomModel
               .findOne({ floors: floorData._id })
@@ -1316,17 +1202,10 @@ export default (agenda) => {
               .lean()
               .exec();
 
-            let updateData = {
-              availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-              rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-              depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-              soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-            };
-
-            await motelRoomModel
-              .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-              .exec();
-
+            await RoomController.updateInforMotel(
+              floorData,
+              motelRoomData,
+            );
 
             //Xóa job khỏi user
             let userUpdateData = {
@@ -1577,53 +1456,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -2028,53 +1876,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -2187,35 +2004,11 @@ export default (agenda) => {
             })
               .exec()
 
-            //cập nhật lại floor
             let floorData = await floorModel
               .findOne({ rooms: roomId })
               .populate("rooms")
               .lean()
               .exec();
-            const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-              return room.status;
-            });
-
-            await floorModel
-              .findOneAndUpdate(
-                { _id: floorData._id },
-                {
-                  availableRoom: roomGroup["available"]
-                    ? roomGroup["available"].length
-                    : 0,
-                  soonExpireContractRoom: roomGroup["soonExpireContract"]
-                    ? roomGroup["soonExpireContract"].length
-                    : 0,
-                  rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                  depositedRoom: roomGroup["deposited"]
-                    ? roomGroup["deposited"].length
-                    : 0,
-                }
-              )
-              .exec();
-
-            //cập nhật lại motel
 
             let motelRoomData = await motelRoomModel
               .findOne({ floors: floorData._id })
@@ -2223,17 +2016,10 @@ export default (agenda) => {
               .lean()
               .exec();
 
-            let updateData = {
-              availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-              rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-              depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-              soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-            };
-
-            await motelRoomModel
-              .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-              .exec();
-
+            await RoomController.updateInforMotel(
+              floorData,
+              motelRoomData,
+            );
 
             //Xóa job khỏi user
             let userUpdateData = {
@@ -2512,35 +2298,11 @@ export default (agenda) => {
             })
               .exec()
 
-            //cập nhật lại floor
             let floorData = await floorModel
               .findOne({ rooms: roomId })
               .populate("rooms")
               .lean()
               .exec();
-            const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-              return room.status;
-            });
-
-            await floorModel
-              .findOneAndUpdate(
-                { _id: floorData._id },
-                {
-                  availableRoom: roomGroup["available"]
-                    ? roomGroup["available"].length
-                    : 0,
-                  soonExpireContractRoom: roomGroup["soonExpireContract"]
-                    ? roomGroup["soonExpireContract"].length
-                    : 0,
-                  rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                  depositedRoom: roomGroup["deposited"]
-                    ? roomGroup["deposited"].length
-                    : 0,
-                }
-              )
-              .exec();
-
-            //cập nhật lại motel
 
             let motelRoomData = await motelRoomModel
               .findOne({ floors: floorData._id })
@@ -2548,17 +2310,10 @@ export default (agenda) => {
               .lean()
               .exec();
 
-            let updateData = {
-              availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-              rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-              depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-              soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-            };
-
-            await motelRoomModel
-              .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-              .exec();
-
+            await RoomController.updateInforMotel(
+              floorData,
+              motelRoomData,
+            );
 
             //Xóa job khỏi user
             let userUpdateData = {
@@ -2910,53 +2665,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -3318,53 +3042,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -3805,53 +3498,22 @@ export default (agenda) => {
               })
                 .exec()
 
-              //cập nhật lại floor
               let floorData = await floorModel
                 .findOne({ rooms: roomId })
                 .populate("rooms")
                 .lean()
                 .exec();
-              const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-                return room.status;
-              });
-
-              await floorModel
-                .findOneAndUpdate(
-                  { _id: floorData._id },
-                  {
-                    availableRoom: roomGroup["available"]
-                      ? roomGroup["available"].length
-                      : 0,
-                    soonExpireContractRoom: roomGroup["soonExpireContract"]
-                      ? roomGroup["soonExpireContract"].length
-                      : 0,
-                    rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                    depositedRoom: roomGroup["deposited"]
-                      ? roomGroup["deposited"].length
-                      : 0,
-                  }
-                )
-                .exec();
-
-              //cập nhật lại motel
-
+  
               let motelRoomData = await motelRoomModel
                 .findOne({ floors: floorData._id })
                 .populate("floors")
                 .lean()
                 .exec();
-
-              let updateData = {
-                availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-                rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-                depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-                soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-              };
-
-              await motelRoomModel
-                .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-                .exec();
-
+  
+              await RoomController.updateInforMotel(
+                floorData,
+                motelRoomData,
+              );
 
               //Xóa job khỏi user
               let userUpdateData = {
@@ -3965,35 +3627,11 @@ export default (agenda) => {
             })
               .exec()
 
-            //cập nhật lại floor
             let floorData = await floorModel
               .findOne({ rooms: roomId })
               .populate("rooms")
               .lean()
               .exec();
-            const roomGroup = lodash.groupBy(floorData.rooms, (room) => {
-              return room.status;
-            });
-
-            await floorModel
-              .findOneAndUpdate(
-                { _id: floorData._id },
-                {
-                  availableRoom: roomGroup["available"]
-                    ? roomGroup["available"].length
-                    : 0,
-                  soonExpireContractRoom: roomGroup["soonExpireContract"]
-                    ? roomGroup["soonExpireContract"].length
-                    : 0,
-                  rentedRoom: roomGroup["rented"] ? roomGroup["rented"].length : 0,
-                  depositedRoom: roomGroup["deposited"]
-                    ? roomGroup["deposited"].length
-                    : 0,
-                }
-              )
-              .exec();
-
-            //cập nhật lại motel
 
             let motelRoomData = await motelRoomModel
               .findOne({ floors: floorData._id })
@@ -4001,17 +3639,10 @@ export default (agenda) => {
               .lean()
               .exec();
 
-            let updateData = {
-              availableRoom: lodash.sumBy(motelRoomData.floors, "availableRoom"),
-              rentedRoom: lodash.sumBy(motelRoomData.floors, "rentedRoom"),
-              depositedRoom: lodash.sumBy(motelRoomData.floors, "depositedRoom"),
-              soonExpireContractRoom: lodash.sumBy(motelRoomData.floors, "soonExpireContractRoom"),
-            };
-
-            await motelRoomModel
-              .findOneAndUpdate({ _id: motelRoomData._id }, updateData)
-              .exec();
-
+            await RoomController.updateInforMotel(
+              floorData,
+              motelRoomData,
+            );
 
             //Xóa job khỏi user
             let userUpdateData = {
@@ -4245,7 +3876,7 @@ export default (agenda) => {
     }
   });
 
-  agenda.define("CreateAllOrderForQuickRentByAdmin", async(job, done) => {
+  agenda.define("CreateAllOrderForQuickRentManyRoomsByAdmin", async(job, done) => {
     try {
       const {
         user: userModel,
@@ -4263,259 +3894,299 @@ export default (agenda) => {
       const bankId = job.attrs.data.bankId;
       const data = job.attrs.data;
       const userId = job.attrs.data.userId;
-      console.log("CreateAllOrderForQuickRentByAdmin", cleanArray);
-      console.log("CreateAllOrderForQuickRentByAdmin", data);
-      console.log("CreateAllOrderForQuickRentByAdmin", bankId);
 
       for(let i = 0; i < cleanArray.length; i++) {
-          const checkInDay = moment(cleanArray[i][7], "DD/MM/YYYY").startOf("days");
-          const timeMoment = moment();
-          const checkOutDay = checkInDay.clone().add(cleanArray[i][8], "months").subtract(1, "days").endOf("days");
-  
-          const phoneNumber = cleanArray[i][6];
-          const phoneNumberObect = {
-            countryCode: "+84",
-            number: helpers.stripeZeroOut(phoneNumber),
-          };
-  
-          let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+        const checkInDay = moment(cleanArray[i][7], "DD/MM/YYYY").startOf("days");
+        const timeMoment = moment();
+
+        const phoneNumber = cleanArray[i][6];
+        const phoneNumberObect = {
+          countryCode: "+84",
+          number: helpers.stripeZeroOut(phoneNumber),
+        };
+
+        let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+        .lean()
+        .exec();
+
+        if(!userDataN) {
+          let dataSignUp = {
+            firstName: cleanArray[i][5],
+            lastName: cleanArray[i][4],
+            phoneNumber: phoneNumberObect,
+            email: cleanArray[i][9],
+            password: cleanArray[i][10],
+            confirmPassword: cleanArray[i][10],
+            role: ['customer'],
+          }
+
+          console.log("dataSignUp out", dataSignUp);
+          console.log({phoneNumber});
+
+          userDataN = await createAccountForUser(
+            dataSignUp,
+            phoneNumber,
+          );
+        }
+
+        const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+
+        const floorDataN = await floorModel
+          .findOne({ rooms: roomDataN._id })
+          .populate("rooms")
           .lean()
           .exec();
-  
-          if(!userDataN) {
-            let dataSignUp = {
-              firstName: cleanArray[i][5],
-              lastName: cleanArray[i][4],
-              phoneNumber: phoneNumberObect,
-              email: cleanArray[i][9],
-              password: cleanArray[i][10],
-              confirmPassword: cleanArray[i][10],
-              role: ['customer'],
-            }
-  
-            console.log("dataSignUp out", dataSignUp);
-            console.log({phoneNumber});
-  
-            const res = '';
-            userDataN = await createAccountForUser(
-              dataSignUp,
-              res,
-              phoneNumber,
-            );
-          }
-  
-          const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
-  
-          const floorDataN = await floorModel
-            .findOne({ rooms: roomDataN._id })
-            .populate("rooms")
-            .lean()
-            .exec();
-  
-          const motelRoomDataN = await motelRoomModel
-            .findOne({ floors: floorDataN._id })
-            .populate("floors owner address")
-            .lean()
-            .exec();
-  
-            console.log({motelRoomDataN})
-  
-          let price = roomDataN.price;
-          let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
-          let deposit = Number(price) / 2;
-          let afterCheckInCost = Number(price) * 0.5 + Number(bail);
-          let total = Number(price) + Number(bail);
-  
-          let resData = await jobModel.create({
-            checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
-            user: userDataN._id,
-            room: roomDataN._id,
-            price: price,
-            bail: bail,
-            total: total,
-            afterCheckInCost: afterCheckInCost,
-            deposit: deposit,
-            // rentalPeriod: parseInt(cleanArray[i][8]),
-            rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
-            status: "pendingActivated",
-            
-            fullName: userDataN.lastName + " " + userDataN.firstName,
-            phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
-          });
-  
-          let userUpdateData = {
-            $addToSet: {
-              jobs: resData._id,
-            },
-          };
-  
-          await userModel
-            .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
-            .exec();
-  
-          //order, transaction, bill of deposit
-          const orderDataDeposit = await orderModel.create({
-            user: userDataN._id,
-            job: resData._id,
-            isCompleted: true,
-            description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-            amount: deposit,
-            type: "deposit",
-            expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
-          });
-  
-          resData = await jobModel.findOneAndUpdate(
-            { _id: resData._id },
-            {
-              isCompleted: orderDataDeposit.isCompleted,
-              $addToSet: { orders: orderDataDeposit._id },
-              currentOrder: orderDataDeposit._id,
-            },
-            { new: true }
-          );
-  
-          await transactionsModel.create({
-            user: userDataN._id,
-            keyPayment: getRandomHex2(),
-            keyOrder: orderDataDeposit.keyOrder,
-            description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
-            amount: orderDataDeposit.amount,
-            status: "success",
-            paymentMethod: "cash",
-            order: orderDataDeposit._id,
-            banking: bankId,
-            type: "deposit",
-            motel: motelRoomDataN._id,
-            room: roomDataN._id,
-          });
-  
-          const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
-  
-          await billModel.create({
-            order: orderDataDeposit._id,
-            idBill: orderDataDeposit.keyOrder,
-            dateBill: moment().format("DD/MM/YYYY"),
-            nameMotel: motelRoomDataN.name,
-            addressMotel: motelRoomDataN.address.address,
-            nameRoom: roomDataN.name,
-  
-            nameUser: userDataN.lastName + " " + userDataN.firstName,
-            phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
-            addressUser: userDataN.address,
-            emailUser: userDataN.email,
-  
-            nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
-            emailOwner: motelRoomDataN.owner.email,
-            phoneOwner: 
-              motelRoomDataN.owner.phoneNumber.countryCode 
-              + motelRoomDataN.owner.phoneNumber.number,
-            addressOwner: motelRoomDataN.owner.address,
-            nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-            numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-            nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
-  
-            totalAll: orderDataDeposit.amount.toFixed(2),
-            totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
-            totalTaxAll: 0,
-            typeTaxAll: 0,
-  
-            description: orderDataDeposit.description,
-  
-            user: userDataN._id,
-            motel: motelRoomDataN._id,
-            roomRented: roomDataN._id,
-  
-            type: "deposit",
-          });
-  
-          //order afterCheckInCost
-          const orderDataAfterCheckInCost = await orderModel.create({
-            user: resData.user,
-            job: resData._id,
-            isCompleted: true,
-            description: `Tiền thanh toán khi nhận phòng tháng 
-            ${moment(resData.checkInTime).format("MM/YYYY")}`,
-            amount: resData.afterCheckInCost,
-            type: "afterCheckInCost",
-            expireTime: moment().add(7, "days").endOf("day").toDate(),
-          });
-  
-          resData = await jobModel.findOneAndUpdate(
-            { _id: resData._id },
-            {
-              $addToSet: { orders: orderDataAfterCheckInCost._id },
-              currentOrder: orderDataAfterCheckInCost._id,
-            },
-            { new: true }
-          );
+
+        const motelRoomDataN = await motelRoomModel
+          .findOne({ floors: floorDataN._id })
+          .populate("floors owner address")
+          .lean()
+          .exec();
+
+          console.log({motelRoomDataN})
+
+        let price = roomDataN.price;
+        let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
+        let deposit = Number(price) / 2;
+        let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+        let total = Number(price) + Number(bail);
+
+        let resData = await jobModel.create({
+          checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
+          user: userDataN._id,
+          room: roomDataN._id,
+          price: price,
+          bail: bail,
+          total: total,
+          afterCheckInCost: afterCheckInCost,
+          deposit: deposit,
+          // rentalPeriod: parseInt(cleanArray[i][8]),
+          rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
+          status: "pendingActivated",
           
-          await transactionsModel.create({
-            user: userDataN._id,
-            keyPayment: getRandomHex2(), 
-            keyOrder: orderDataAfterCheckInCost.keyOrder,
-            description:  `Tiền thanh toán khi nhận phòng tháng 
-            ${moment(resData.checkInTime).format("MM/YYYY")}`,
-            amount: orderDataAfterCheckInCost.amount,
-            status: "success",
-            paymentMethod: "cash",
-            order: orderDataAfterCheckInCost._id,
-            banking: bankId,
-            type: "afterCheckInCost",
-            motel: motelRoomDataN._id,
-            room: roomDataN._id,
-          });
-  
-          await billModel.create({
-            order: orderDataAfterCheckInCost._id,
-            idBill: orderDataAfterCheckInCost.keyOrder,
-            dateBill: moment().format("DD/MM/YYYY"),
-            nameMotel: motelRoomDataN.name,
-            addressMotel: motelRoomDataN.address.address,
-            nameRoom: roomDataN.name,
-  
-            nameUser: userDataN.lastName + " " + userDataN.firstName,
-            phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
-            addressUser: userDataN.address,
-            emailUser: userDataN.email,
-  
-            nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
-            emailOwner: motelRoomDataN.owner.email,
-            phoneOwner: 
-              motelRoomDataN.owner.phoneNumber.countryCode 
-              + motelRoomDataN.owner.phoneNumber.number,
-            addressOwner: motelRoomDataN.owner.address,
-            nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
-            numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
-            nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
-  
-            totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
-            totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
-            totalTaxAll: 0,
-            typeTaxAll: 0,
-  
-            description: orderDataAfterCheckInCost.orderData,
-  
-            user: userDataN._id,
-            motel: motelRoomDataN._id,
-            roomRented: roomDataN._id,
-  
-            type: "afterCheckInCost",
-          });
-  
-          //create history monthly order
+          fullName: userDataN.lastName + " " + userDataN.firstName,
+          phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
+        });
+
+        let userUpdateData = {
+          $addToSet: {
+            jobs: resData._id,
+          },
+        };
+
+        await userModel
+          .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
+          .exec();
+
+        //order, transaction, bill of deposit
+        const orderDataDeposit = await orderModel.create({
+          user: userDataN._id,
+          job: resData._id,
+          isCompleted: true,
+          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: deposit,
+          type: "deposit",
+          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: orderDataDeposit.isCompleted,
+            $addToSet: { orders: orderDataDeposit._id },
+            currentOrder: orderDataDeposit._id,
+          },
+          { new: true }
+        );
+
+        await transactionsModel.create({
+          user: userDataN._id,
+          keyPayment: getRandomHex2(),
+          keyOrder: orderDataDeposit.keyOrder,
+          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderDataDeposit.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderDataDeposit._id,
+          banking: bankId,
+          type: "deposit",
+          motel: motelRoomDataN._id,
+          room: roomDataN._id,
+        });
+
+        const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+
+        await billModel.create({
+          order: orderDataDeposit._id,
+          idBill: orderDataDeposit.keyOrder,
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomDataN.name,
+          addressMotel: motelRoomDataN.address.address,
+          nameRoom: roomDataN.name,
+
+          nameUser: userDataN.lastName + " " + userDataN.firstName,
+          phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+          addressUser: userDataN.address,
+          emailUser: userDataN.email,
+
+          nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+          emailOwner: motelRoomDataN.owner.email,
+          phoneOwner: 
+            motelRoomDataN.owner.phoneNumber.countryCode 
+            + motelRoomDataN.owner.phoneNumber.number,
+          addressOwner: motelRoomDataN.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderDataDeposit.amount.toFixed(2),
+          totalAndTaxAll: orderDataDeposit.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderDataDeposit.description,
+
+          user: userDataN._id,
+          motel: motelRoomDataN._id,
+          roomRented: roomDataN._id,
+
+          type: "deposit",
+        });
+
+        //order afterCheckInCost
+        const orderDataAfterCheckInCost = await orderModel.create({
+          user: resData.user,
+          job: resData._id,
+          isCompleted: true,
+          description: `Tiền thanh toán khi nhận phòng tháng 
+          ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: resData.afterCheckInCost,
+          type: "afterCheckInCost",
+          expireTime: moment().add(7, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            $addToSet: { orders: orderDataAfterCheckInCost._id },
+            currentOrder: orderDataAfterCheckInCost._id,
+          },
+          { new: true }
+        );
         
-          if(checkInDay.clone().year() < timeMoment.clone().year()) {
+        await transactionsModel.create({
+          user: userDataN._id,
+          keyPayment: getRandomHex2(), 
+          keyOrder: orderDataAfterCheckInCost.keyOrder,
+          description:  `Tiền thanh toán khi nhận phòng tháng 
+          ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderDataAfterCheckInCost.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderDataAfterCheckInCost._id,
+          banking: bankId,
+          type: "afterCheckInCost",
+          motel: motelRoomDataN._id,
+          room: roomDataN._id,
+        });
+
+        await billModel.create({
+          order: orderDataAfterCheckInCost._id,
+          idBill: orderDataAfterCheckInCost.keyOrder,
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomDataN.name,
+          addressMotel: motelRoomDataN.address.address,
+          nameRoom: roomDataN.name,
+
+          nameUser: userDataN.lastName + " " + userDataN.firstName,
+          phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+          addressUser: userDataN.address,
+          emailUser: userDataN.email,
+
+          nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+          emailOwner: motelRoomDataN.owner.email,
+          phoneOwner: 
+            motelRoomDataN.owner.phoneNumber.countryCode 
+            + motelRoomDataN.owner.phoneNumber.number,
+          addressOwner: motelRoomDataN.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderDataAfterCheckInCost.amount.toFixed(2),
+          totalAndTaxAll: orderDataAfterCheckInCost.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderDataAfterCheckInCost.orderData,
+
+          user: userDataN._id,
+          motel: motelRoomDataN._id,
+          roomRented: roomDataN._id,
+
+          type: "afterCheckInCost",
+        });
+
+        //create history monthly order
+      
+        if(checkInDay.clone().year() < timeMoment.clone().year()) {
+          let monthPlus: number = 0;
+          while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+            //create order
+            let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+
+            //first month
+            if(monthPlus === 0) {
+              startTime = checkInDay.clone().startOf("days");
+            }
+            let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+
+            let orderDataMonthly = await createOrderHistory(
+              resData,
+              roomDataN,
+              motelRoomDataN,
+              startTime,
+              endTime,
+              bankId,
+            );
+
+            await jobModel.findOneAndUpdate(
+              { _id: resData._id },
+              {
+                $addToSet: { orders: orderDataMonthly._id },
+                currentOrder: orderDataMonthly._id,
+                status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+                isActived: true,
+              }
+            );
+
+            monthPlus++;
+          }
+
+          //tính cho tháng hiện tại vào đầu tháng sau
+          await global.agendaInstance.agenda.schedule(
+            timeMoment.clone()
+              .startOf("month")
+              .add(1, "months")
+              .toDate(),
+            "CreateOrderForNextMonth",
+            { jobId: resData._id }
+          );
+
+        } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
+          if (checkInDay.clone().month() <  timeMoment.clone().month()) {
+            // tạo order trước đó
             let monthPlus: number = 0;
             while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
               //create order
               let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-  
+
               //first month
               if(monthPlus === 0) {
                 startTime = checkInDay.clone().startOf("days");
               }
               let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
-  
+
               let orderDataMonthly = await createOrderHistory(
                 resData,
                 roomDataN,
@@ -4524,7 +4195,7 @@ export default (agenda) => {
                 endTime,
                 bankId,
               );
-  
+
               await jobModel.findOneAndUpdate(
                 { _id: resData._id },
                 {
@@ -4534,10 +4205,10 @@ export default (agenda) => {
                   isActived: true,
                 }
               );
-  
+
               monthPlus++;
             }
-  
+
             //tính cho tháng hiện tại vào đầu tháng sau
             await global.agendaInstance.agenda.schedule(
               timeMoment.clone()
@@ -4547,143 +4218,102 @@ export default (agenda) => {
               "CreateOrderForNextMonth",
               { jobId: resData._id }
             );
-  
-          } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
-            if (checkInDay.clone().month() <  timeMoment.clone().month()) {
-              // tạo order trước đó
-              let monthPlus: number = 0;
-              while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
-                //create order
-                let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
-  
-                //first month
-                if(monthPlus === 0) {
-                  startTime = checkInDay.clone().startOf("days");
-                }
-                let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
-  
-                let orderDataMonthly = await createOrderHistory(
-                  resData,
-                  roomDataN,
-                  motelRoomDataN,
-                  startTime,
-                  endTime,
-                  bankId,
-                );
-  
-                await jobModel.findOneAndUpdate(
-                  { _id: resData._id },
-                  {
-                    $addToSet: { orders: orderDataMonthly._id },
-                    currentOrder: orderDataMonthly._id,
-                    status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
-                    isActived: true,
-                  }
-                );
-  
-                monthPlus++;
-              }
-  
-              //tính cho tháng hiện tại vào đầu tháng sau
-              await global.agendaInstance.agenda.schedule(
-                timeMoment.clone()
-                  .startOf("month")
-                  .add(1, "months")
-                  .toDate(),
-                "CreateOrderForNextMonth",
-                { jobId: resData._id }
-              );
-  
-            } else {
-              //không cần tạo lịch sử hóa đơn
-              await global.agendaInstance.agenda.schedule(
-                timeMoment.clone()
-                  .startOf("month")
-                  .add("1", "months")
-                  .toDate(),
-                "CreateFirstMonthOrder",
-                { jobId: resData._id }
-              );
-            }
+
+          } else {
+            //không cần tạo lịch sử hóa đơn
+            await global.agendaInstance.agenda.schedule(
+              timeMoment.clone()
+                .startOf("month")
+                .add("1", "months")
+                .toDate(),
+              "CreateFirstMonthOrder",
+              { jobId: resData._id }
+            );
           }
+        }
+
+        await roomModel
+        .findOneAndUpdate(
+          { _id: roomDataN._id },
+          { status: "rented", rentedBy: userDataN._id },
+          { new: true }
+        )
+        .exec();
+
+        // const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
+        //   return room.status;
+        // });
   
-          await roomModel
+        // await floorModel
+        //   .findOneAndUpdate(
+        //     { _id: floorDataN._id },
+        //     {
+        //       availableRoom: roomGroup["available"]
+        //         ? roomGroup["available"].length
+        //         : 0,
+        //       rentedRoom: roomGroup["rented"]
+        //         ? roomGroup["rented"].length
+        //         : 0,
+        //       depositedRoom: roomGroup["deposited"]
+        //         ? roomGroup["deposited"].length
+        //         : 0,
+        //     }
+        //   )
+        //   .exec();
+  
+        // let updateData = {
+        //   availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
+        //   rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
+        //   depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
+        // };
+  
+        // await motelRoomModel
+        //   .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
+        //   .exec();
+
+        await RoomController.updateInforMotel(
+          floorDataN,
+          motelRoomDataN,
+        );
+  
+        await jobModel
           .findOneAndUpdate(
-            { _id: roomDataN._id },
-            { status: "rented", rentedBy: userDataN._id },
+            { _id: resData._id },
+            {
+              isCompleted: true,
+              status: "pendingActivated",
+            },
             { new: true }
           )
           .exec();
   
-          const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
-            return room.status;
-          });
-    
-          await floorModel
-            .findOneAndUpdate(
-              { _id: floorDataN._id },
-              {
-                availableRoom: roomGroup["available"]
-                  ? roomGroup["available"].length
-                  : 0,
-                rentedRoom: roomGroup["rented"]
-                  ? roomGroup["rented"].length
-                  : 0,
-                depositedRoom: roomGroup["deposited"]
-                  ? roomGroup["deposited"].length
-                  : 0,
-              }
-            )
-            .exec();
-    
-          let updateData = {
-            availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
-            rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
-            depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
-          };
-    
-          await motelRoomModel
-            .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
-            .exec();
-    
-          await jobModel
-            .findOneAndUpdate(
-              { _id: resData._id },
-              {
-                isCompleted: true,
-                status: "pendingActivated",
-              },
-              { new: true }
-            )
-            .exec();
-    
-          const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
-    
-          await NotificationController.createNotification({
-            title: "Thông báo kích hoạt hợp đồng",
-            content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
-            ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
-    
-            user: resData.user._id,
-            isRead: false,
-            type: "activeJob",
-            url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
-            tag: "Job",
-            contentTag: resData._id,
-          });
-    
-          await global.agendaInstance.agenda.schedule(
-            moment(resData.checkInTime)
-              .add(7, "days")
-              .endOf("day")
-              .toDate(),
-            "CheckJobStatus",
-            { jobId: resData._id }
-          );
+        const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+  
+        await NotificationController.createNotification({
+          title: "Thông báo kích hoạt hợp đồng",
+          content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+          ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+  
+          user: resData.user._id,
+          isRead: false,
+          type: "activeJob",
+          url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
+          tag: "Job",
+          contentTag: resData._id,
+        });
+  
+        await global.agendaInstance.agenda.schedule(
+          moment(resData.checkInTime)
+            .add(7, "days")
+            .endOf("day")
+            .toDate(),
+          "CheckJobStatus",
+          { jobId: resData._id }
+        );
       }
 
       await NotificationController.createNotification({
-        title: "Thông báo kích hoạt hợp đồng",
+        title: "Thông báo thuê nhiều phòng",
         content: `Hoàn thành việc thuê nhanh bằng file`,
 
         user: userId,
@@ -4696,6 +4326,391 @@ export default (agenda) => {
       done();
     } catch (error) {
       done()
+    }
+  });
+
+  agenda.define("CreateAllOrderDepositForQuickDepositManyRoomsByAdmin", async(job, done) => {
+    try {
+      const {
+        user: userModel,
+        room: roomModel,
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+        transactions: transactionsModel,
+        job: jobModel,
+        order: orderModel,
+        banking: bankingModel,
+        bill: billModel,
+      } = global.mongoModel;
+
+      const cleanArray = job.attrs.data.data;
+      const bankId = job.attrs.data.bankId;
+      const data = job.attrs.data;
+      const userId = job.attrs.data.userId;
+
+      for(let i = 0; i < cleanArray.length; i++) {
+        const phoneNumber = cleanArray[i][6];
+        const phoneNumberObect = {
+          countryCode: "+84",
+          number: helpers.stripeZeroOut(phoneNumber),
+        };
+
+        let userDataN = await userModel.findOne({phoneNumber: phoneNumberObect})
+        .lean()
+        .exec();
+
+        if(!userDataN) {
+          let dataSignUp = {
+            firstName: cleanArray[i][5],
+            lastName: cleanArray[i][4],
+            phoneNumber: phoneNumberObect,
+            email: cleanArray[i][9],
+            password: cleanArray[i][10],
+            confirmPassword: cleanArray[i][10],
+            role: ['customer'],
+          }
+
+          userDataN = await createAccountForUser(
+            dataSignUp,
+            phoneNumber,
+          );
+        }
+
+        const roomDataN = await roomModel.findOne({_id: cleanArray[i][2]}).lean().exec();
+
+        const floorDataN = await floorModel
+          .findOne({ rooms: roomDataN._id })
+          .populate("rooms")
+          .lean()
+          .exec();
+
+        const motelRoomDataN = await motelRoomModel
+          .findOne({ floors: floorDataN._id })
+          .populate("floors owner address")
+          .lean()
+          .exec();
+
+        let price = roomDataN.price;
+        let bail =  roomDataN.depositPrice === 0 ? roomDataN.price : roomDataN.depositPrice;
+        let deposit = Number(price) / 2;
+        let afterCheckInCost = Number(price) * 0.5 + Number(bail);
+        let total = Number(price) + Number(bail);
+
+        let resData = await jobModel.create({
+          checkInTime: moment(cleanArray[i][7],  "DD/MM/YYYY").startOf("days").toDate(),
+          user: userDataN._id,
+          room: roomDataN._id,
+          price: price,
+          bail: bail,
+          total: total,
+          afterCheckInCost: afterCheckInCost,
+          deposit: deposit,
+          // rentalPeriod: parseInt(cleanArray[i][8]),
+          rentalPeriod: typeof cleanArray[i][8] === 'string' ? parseInt(cleanArray[i][8]) : cleanArray[i][8],
+          status: "pendingActivated",
+          
+          fullName: userDataN.lastName + " " + userDataN.firstName,
+          phoneNumber: userDataN.phoneNumber.countryCode +  userDataN.phoneNumber.number,
+        });
+
+        let userUpdateData = {
+          $addToSet: {
+            jobs: resData._id,
+          },
+        };
+
+        //order, transaction, bill of deposit
+        const orderData = await orderModel.create({
+          user: userDataN._id,
+          job: resData._id,
+          isCompleted: true,
+          description: `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: deposit,
+          type: "deposit",
+          expireTime: moment(resData.checkInTime).add(2, "days").endOf("day").toDate(),
+        });
+
+        resData = await jobModel.findOneAndUpdate(
+          { _id: resData._id },
+          {
+            isCompleted: orderData.isCompleted,
+            $addToSet: { orders: orderData._id },
+            currentOrder: orderData._id,
+          },
+          { new: true }
+        );
+
+        await transactionsModel.create({
+          user: userDataN._id,
+          keyPayment: getRandomHex2(),
+          keyOrder: orderData.keyOrder,
+          description:  `Tiền cọc phòng tháng ${moment(resData.checkInTime).format("MM/YYYY")}`,
+          amount: orderData.amount,
+          status: "success",
+          paymentMethod: "cash",
+          order: orderData._id,
+          banking: bankId,
+          type: "deposit",
+          motel: motelRoomDataN._id,
+          room: roomDataN._id,
+        });
+
+        const bankData = await bankingModel.findOne({_id: bankId}).lean().exec();
+
+        await billModel.create({
+          order: orderData._id,
+          idBill: orderData.keyOrder,
+          dateBill: moment().format("DD/MM/YYYY"),
+          nameMotel: motelRoomDataN.name,
+          addressMotel: motelRoomDataN.address.address,
+          nameRoom: roomDataN.name,
+
+          nameUser: userDataN.lastName + " " + userDataN.firstName,
+          phoneUser: userDataN.phoneNumber.countryCode + userDataN.phoneNumber.number,
+          addressUser: userDataN.address,
+          emailUser: userDataN.email,
+
+          nameOwner: motelRoomDataN.owner.lastName + motelRoomDataN.owner.firstName,
+          emailOwner: motelRoomDataN.owner.email,
+          phoneOwner: 
+            motelRoomDataN.owner.phoneNumber.countryCode 
+            + motelRoomDataN.owner.phoneNumber.number,
+          addressOwner: motelRoomDataN.owner.address,
+          nameBankOwner: bankData ? bankData.nameTkLable : "Chưa thêm tài khoản",
+          numberBankOwner: bankData ? bankData.stk : "Chưa thêm tài khoản",
+          nameOwnerBankOwner: bankData ? bankData.nameTk : "Chưa thêm tài khoản",
+
+          totalAll: orderData.amount.toFixed(2),
+          totalAndTaxAll: orderData.amount.toFixed(2),
+          totalTaxAll: 0,
+          typeTaxAll: 0,
+
+          description: orderData.description,
+
+          user: userDataN._id,
+          motel: motelRoomDataN._id,
+          roomRented: roomDataN._id,
+
+          type: "deposit",
+        });
+
+        await userModel
+        .findOneAndUpdate({ _id: userDataN._id }, userUpdateData, { new: true })
+        .exec();
+
+        await roomModel
+        .findOneAndUpdate(
+          { _id: roomDataN._id },
+          { status: "deposited", rentedBy: userDataN._id },
+          { new: true }
+        )
+        .exec();
+
+        // const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
+        //   return room.status;
+        // });
+  
+        // await floorModel
+        //   .findOneAndUpdate(
+        //     { _id: floorDataN._id },
+        //     {
+        //       availableRoom: roomGroup["available"]
+        //         ? roomGroup["available"].length
+        //         : 0,
+        //       rentedRoom: roomGroup["rented"]
+        //         ? roomGroup["rented"].length
+        //         : 0,
+        //       depositedRoom: roomGroup["deposited"]
+        //         ? roomGroup["deposited"].length
+        //         : 0,
+        //     }
+        //   )
+        //   .exec();
+  
+        // let updateData = {
+        //   availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
+        //   rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
+        //   depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
+        // };
+  
+        // await motelRoomModel
+        //   .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
+        //   .exec();
+
+        await RoomController.updateInforMotel(
+          floorDataN,
+          motelRoomDataN,
+        );
+  
+        await jobModel
+          .findOneAndUpdate(
+            { _id: resData._id },
+            {
+              isCompleted: true,
+              status: "pendingActivated",
+            },
+            { new: true }
+          )
+          .exec();
+  
+        const activeExpireTime = moment(resData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
+  
+        await NotificationController.createNotification({
+          title: "Thông báo kích hoạt hợp đồng",
+          content: `Bạn đã đặt cọc thành công. Vui lòng kích hoạt hợp đồng cho phòng 
+          ${ roomDataN.name} thuộc tòa nhà ${motelRoomDataN.name}, hạn cuối tới ngày ${activeExpireTime}.`,
+  
+          user: resData.user._id,
+          isRead: false,
+          type: "activeJob",
+          url: `${process.env.BASE_PATH_CLINET3}job-detail/${resData._id}/${roomDataN._id}`,
+          tag: "Job",
+          contentTag: resData._id,
+        });
+  
+        await global.agendaInstance.agenda.schedule(
+          moment(resData.checkInTime)
+            .add(7, "days")
+            .endOf("day")
+            .toDate(),
+          "CheckJobStatus",
+          { jobId: resData._id }
+        );
+      }
+
+      await NotificationController.createNotification({
+        title: "Thông báo đặt cọc nhiều phòng",
+        content: `Hoàn thành việc đặt cọc nhanh bằng file`,
+
+        user: userId,
+        isRead: false,
+        type: null,
+        url: null,
+        tag: null,
+        contentTag: null,
+      });
+      done();
+    } catch (error) {
+      done();
+    }
+  });
+
+  agenda.define("CreateAllOrderMonthlyForQuickRentOneRoomByAdmin", async(job, done) => {
+    try {
+      const {
+        room: roomModel,
+        motelRoom: motelRoomModel,
+        job: jobModel,
+      } = global.mongoModel;
+
+      const jobId = job.attrs.data.jobId;
+      const roomId = job.attrs.data.roomId;
+      const motelRoomId = job.attrs.data.motelRoomId;
+      const bankId = job.attrs.data.bankId;
+      const checkInDay = moment(job.attrs.data.checkInDay);
+      const timeMoment = moment(job.attrs.data.timeMoment);
+
+      const resData = await jobModel.findOne({_id: jobId}).lean().exec();
+      const roomData = await roomModel.findOne({_id: roomId}).lean().exec();
+      const motelRoomData = await motelRoomModel.findOne({_id: motelRoomId})
+        .populate("floors owner address")
+        .lean().exec();
+
+      if(checkInDay.clone().year() < timeMoment.clone().year()) {
+        let monthPlus: number = 0;
+        while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+          //create order
+          let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+
+          //first month
+          if(monthPlus === 0) {
+            startTime = checkInDay.clone().startOf("days");
+          }
+          let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+
+          let orderDataMonthly = await RoomController.createOrderHistory(
+            resData,
+            roomData,
+            motelRoomData,
+            startTime,
+            endTime,
+            bankId,
+          );
+
+          await jobModel.findOneAndUpdate(
+            { _id: resData._id },
+            {
+              $addToSet: { orders: orderDataMonthly._id },
+              currentOrder: orderDataMonthly._id,
+              status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+              isActived: true,
+            }
+          );
+
+          monthPlus++;
+        }
+
+        //tính cho tháng hiện tại vào đầu tháng sau
+        await global.agendaInstance.agenda.schedule(
+          timeMoment.clone()
+            .startOf("month")
+            .add(1, "months")
+            .toDate(),
+          "CreateOrderForNextMonth",
+          { jobId: resData._id }
+        );
+
+      } else if (checkInDay.clone().year() === timeMoment.clone().year()) {
+        if (checkInDay.clone().month() <  timeMoment.clone().month()) {
+          // tạo order trước đó
+          let monthPlus: number = 0;
+          while(checkInDay.clone().add(monthPlus, "months").isBefore(timeMoment.clone().startOf("months"))) {
+            //create order
+            let startTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").startOf("months");
+
+            //first month
+            if(monthPlus === 0) {
+              startTime = checkInDay.clone().startOf("days");
+            }
+            let endTime: moment.Moment = checkInDay.clone().add(monthPlus, "months").endOf("months");
+
+            let orderDataMonthly = await RoomController.createOrderHistory(
+              resData,
+              roomData,
+              motelRoomData,
+              startTime,
+              endTime,
+              bankId,
+            );
+
+            await jobModel.findOneAndUpdate(
+              { _id: resData._id },
+              {
+                $addToSet: { orders: orderDataMonthly._id },
+                currentOrder: orderDataMonthly._id,
+                status: "monthlyPaymentCompleted",//note: chưa chắc trạng thái
+                isActived: true,
+              }
+            );
+
+            monthPlus++;
+          }
+
+          //tính cho tháng hiện tại vào đầu tháng sau
+          await global.agendaInstance.agenda.schedule(
+            timeMoment.clone()
+              .startOf("month")
+              .add(1, "months")
+              .toDate(),
+            "CreateOrderForNextMonth",
+            { jobId: resData._id }
+          );
+
+        }
+      }
+      done();
+    } catch (error) {
+      done();
     }
   });
 
@@ -4799,9 +4814,9 @@ const getRandomHex2 = () => {
   return ma;
 };
 
+// the data signup validated
 async function createAccountForUser(
   data: any,
-  res,
   phoneNumber,
 ): Promise<any> {
   let dataSignUp = {
@@ -4818,17 +4833,6 @@ async function createAccountForUser(
   const {
     user: userModel,
   } = global.mongoModel;
-
-  // Validate input data for signUp
-  const validateResults = await userModel.validateData(["signUp"], dataSignUp);
-
-  // Parse error list form validation results
-  const errorList = normalizeError(validateResults);
-
-  // Validation Error
-  if (errorList.length > 0) {
-    // return HttpResponse.returnBadRequestResponse(res, errorList);
-  }
 
   // active
   dataSignUp["active"] = true;
