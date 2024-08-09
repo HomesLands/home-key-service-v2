@@ -2103,11 +2103,15 @@ export default class MotelRoomController {
       address: addressModel,
     } = global.mongoModel;
 
-    let motelData = await motelRoomModel.findOne({_id: motelRoomId}).lean().exec();
-    let addressLegacyId = '';
+    let motelData = await motelRoomModel.findOne({_id: motelRoomId}).populate("address").lean().exec();
+    let addressLegacyId = null;
     if(motelData) {
       if(motelData.address) {
-        addressLegacyId = motelData.address;
+        if(motelData.address.address) {
+          if(motelData.address.address !== data.address.address) {
+            addressLegacyId = motelData.address._id;
+          }
+        }
       }
     }
 
@@ -2127,7 +2131,9 @@ export default class MotelRoomController {
     .lean()
     .exec();
 
-    await addressModel.remove({_id: addressLegacyId});
+    if(addressLegacyId) {
+      await addressModel.remove({_id: addressLegacyId});
+    }
 
     return motelDataN;
   }
