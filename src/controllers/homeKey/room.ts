@@ -1072,10 +1072,10 @@ export default class RoomController {
       } = data;
 
       const firstName = data.firstName ? data.firstName : '';
-      const lastName = data.firstName ? data.firstName : '';
-      const email = data.firstName ? data.firstName : '';
-      const password = data.firstName ? data.firstName : '';
-      const confirmPassword = data.firstName ? data.firstName : '';
+      const lastName = data.lastName ? data.lastName : '';
+      const email = data.email ? data.email : '';
+      const password = data.password ? data.password : '';
+      const confirmPassword = data.confirmPassword ? data.confirmPassword : '';
 
 
       // let phoneNumber = "0999999993";
@@ -1136,6 +1136,8 @@ export default class RoomController {
           role: ['customer'],
         }
 
+        console.log({dataSignUp})
+
         // Validate input data for signUp
         const validateResults = await userModel.validateData(["signUp"], dataSignUp);
 
@@ -1184,6 +1186,9 @@ export default class RoomController {
         let resData = await userData.save();
         console.log({ resData, userData });
         resData = resData.toObject();
+
+        console.log("TẠO TK THANH CONG")
+        console.log("mk", resData.password)
 
         // Remove password property
         delete resData.password;
@@ -3043,10 +3048,10 @@ export default class RoomController {
       } = data;
 
       const firstName = data.firstName ? data.firstName : '';
-      const lastName = data.firstName ? data.firstName : '';
-      const email = data.firstName ? data.firstName : '';
-      const password = data.firstName ? data.firstName : '';
-      const confirmPassword = data.firstName ? data.firstName : '';
+      const lastName = data.lastName ? data.lastName : '';
+      const email = data.email ? data.email : '';
+      const password = data.password ? data.password : '';
+      const confirmPassword = data.confirmPassword ? data.confirmPassword : '';
 
 
       const checkInDay = moment(checkInTime, "DD/MM/YYYY").startOf("days");
