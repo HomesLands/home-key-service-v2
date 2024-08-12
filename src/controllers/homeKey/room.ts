@@ -3505,6 +3505,14 @@ export default class RoomController {
         )
       }
 
+      await global.agendaInstance.agenda.schedule(
+        moment()
+        .add(1, "days")
+        .toDate(),
+        "CheckImgForJobQuickRent",
+        { jobId: resData._id, userId: req["userId"]}
+      );
+
       await roomModel
       .findOneAndUpdate(
         { _id: roomData._id },
