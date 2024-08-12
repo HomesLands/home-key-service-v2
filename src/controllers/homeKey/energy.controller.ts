@@ -5529,20 +5529,22 @@ export default class EnergyController {
           notification: notificationModel,
         } = global.mongoModel;
 
+        
+
         // const a = await JobController.getJob("66a355d01675bb3ee844f7b1");
         // console.log({a})
 
-        const place = "Linh Trung";
+        // const place = "Linh Trung";
 
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?address=${place}&key=${process.env.GOOGLE_MAP_API_KEY}`
-        ).then(response => {
-          return response.json()
-        })
-        .then(data => {
-          console.log({data});
-          console.log(data.results)
-        });
+        // const response = await fetch(
+        //   `https://maps.googleapis.com/maps/api/geocode/json?address=${place}&key=${process.env.GOOGLE_MAP_API_KEY}`
+        // ).then(response => {
+        //   return response.json()
+        // })
+        // .then(data => {
+        //   console.log({data});
+        //   console.log(data.results)
+        // });
         
         // await NotificationController.createNotification({
         //   title: "Thông báo duyệt thanh toán cọc",
@@ -11776,8 +11778,6 @@ async function getBufferOrderAllType(
     return buffer;
   }
 }
-
-
 
 
 

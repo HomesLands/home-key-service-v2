@@ -4240,37 +4240,6 @@ export default (agenda) => {
         )
         .exec();
 
-        // const roomGroup = lodash.groupBy(floorDataN.rooms, (room) => {
-        //   return room.status;
-        // });
-  
-        // await floorModel
-        //   .findOneAndUpdate(
-        //     { _id: floorDataN._id },
-        //     {
-        //       availableRoom: roomGroup["available"]
-        //         ? roomGroup["available"].length
-        //         : 0,
-        //       rentedRoom: roomGroup["rented"]
-        //         ? roomGroup["rented"].length
-        //         : 0,
-        //       depositedRoom: roomGroup["deposited"]
-        //         ? roomGroup["deposited"].length
-        //         : 0,
-        //     }
-        //   )
-        //   .exec();
-  
-        // let updateData = {
-        //   availableRoom: lodash.sumBy(motelRoomDataN.floors, "availableRoom"),
-        //   rentedRoom: lodash.sumBy(motelRoomDataN.floors, "rentedRoom"),
-        //   depositedRoom: lodash.sumBy(motelRoomDataN.floors, "depositedRoom"),
-        // };
-  
-        // await motelRoomModel
-        //   .findOneAndUpdate({ _id: motelRoomDataN._id }, updateData)
-        //   .exec();
-
         await RoomController.updateInforMotel(
           floorDataN,
           motelRoomDataN,
@@ -4309,6 +4278,14 @@ export default (agenda) => {
             .toDate(),
           "CheckJobStatus",
           { jobId: resData._id }
+        );
+
+        await global.agendaInstance.agenda.schedule(
+          moment()
+          .add(1, "days")
+          .toDate(),
+          "CheckImgForJobQuickRent",
+          { jobId: resData._id, userId: userId}
         );
       }
 
@@ -4706,6 +4683,70 @@ export default (agenda) => {
             { jobId: resData._id }
           );
 
+        }
+      }
+
+      done();
+    } catch (error) {
+      done();
+    }
+  });
+
+  agenda.define("CheckImgForJobQuickRent", async(job, done) => {
+    try {
+      const { 
+        job: jobModel,
+        room: roomModel,
+        floor: floorModel,
+        motelRoom: motelRoomModel,
+      } = global.mongoModel;
+      const jobId = job.attrs.data.jobId;
+      const userId = job.attrs.data.userId;
+
+      const jobData = await jobModel.findOne({_id: jobId}).lean().exec();
+      if(!jobData) {
+        done();
+      }
+
+      const roomId = jobData.room;
+      const roomData = await roomModel.findOne({_id: roomId}).lean().exec();
+      if(!roomData) {
+        done();
+      }
+
+      const floorData = await floorModel.findOne({rooms: roomData._id}).lean().exec();
+      if(!floorData) {
+        done();
+      }
+
+      const motelRoomData = await motelRoomModel.findOne({floors: floorData._id}).lean().exec();
+      if(!motelRoomData) {
+        done();
+      }
+      if(jobData.images) {
+        if(jobData.images.length < 2) {
+          await NotificationController.createNotification({
+            title: "Thông báo cập nhật ảnh cho hợp đồng",
+
+            content: `Phòng ${roomData.name} thuộc tòa nhà ${motelRoomData.name} được 
+            thuê nhanh ngày ${moment(jobData.checkInTime).format("DD-MM-YYYY")} 
+            chưa cập nhật ảnh CCCD`,
+
+            user: jobData.user._id,
+            isRead: false,
+            type: "updateImgForJob",
+            url: `${process.env.BASE_PATH_CLINET3}room-detail-update/${roomData._id}`,
+            tag: "Job",
+            contentTag: userId,
+          });
+        } else {
+          await global.agendaInstance.agenda.schedule(
+            moment()
+            .add(1, "days")
+            .toDate(),
+            "CheckImgForJobQuickRent",
+            { jobId: jobId, userId: userId}
+          );
         }
       }
       done();

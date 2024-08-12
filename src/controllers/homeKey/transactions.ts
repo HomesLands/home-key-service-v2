@@ -276,25 +276,6 @@ export default class TransactionsController {
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   static async postTransactionsDepositPendingBanking(
     req: Request,
     res: Response,
@@ -308,7 +289,6 @@ export default class TransactionsController {
         transactions: TransactionsModel,
         order: orderModel,
         user: userModel,
-        room: roomModel,
         motelRoom: motelRoomModel,
         floor: floorModel,
         job: jobModel,
@@ -507,7 +487,10 @@ export default class TransactionsController {
       // await session.commitTransaction();
       // session.endSession();
 
-      const motelData = await motelRoomModel.findOne({floors: floorData._id}).lean().exec();
+      const motelData = await motelRoomModel
+        .findOne({floors: floorData._id})
+        .lean()
+        .exec();
 
       const adminData = await userModel.findOne({
         role: { $in: ['master']}
@@ -524,6 +507,20 @@ export default class TransactionsController {
 
             content: `Vui lòng duyệt cọc cho phòng ${roomData.name} thuộc tòa nhà ${motelData.name} 
             của chủ trọ ${ownerData.lastName} ${ownerData.firstName}.`,
+
+            user: ownerData._id,
+            isRead: false,
+            url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-deposit/${motelData._id}`,
+            tag: "Transactions",
+            contentTag: transactionsData._id,
+          });
+
+          // host
+          await NotificationController.createNotification({
+            title: "Thông báo duyệt thanh toán cọc",
+            type: "deposit",
+
+            content: `Vui lòng duyệt cọc cho phòng ${roomData.name} thuộc tòa nhà ${motelData.name}.`,
 
             user: adminData._id,
             isRead: false,
@@ -787,6 +784,23 @@ export default class TransactionsController {
           tag: "Transactions",
           contentTag: transactionsData._id,
         });
+
+        // host
+        await NotificationController.createNotification({
+          title: "Thông báo phê duyệt thanh toán khi nhận phòng",
+
+          content: `Vui lòng phê duyệt yêu cầu thanh toán khi nhận phòng cho phòng ${roomData.name} thuộc tòa
+          ${motelData.name}.`,
+
+          user: motelData.owner._id,
+          isRead: false,
+          type: "afterCheckInCost",
+          url: `${process.env.BASE_PATH_CLINET3}manage-deposit/accept-after-check-in-cost/${motelData._id}`,
+          // tag: transactionsData._id,
+          // contentTag: null,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
+        });
         transactionsDataN = transactionsData;
       } else if (formData.type === "monthly") {
         const transactionsData = await TransactionsModel.create({
@@ -804,6 +818,7 @@ export default class TransactionsController {
           room: roomData._id,
         });
 
+        // admin
         await NotificationController.createNotification({
           title: "Thông báo phê duyệt thanh toán hàng tháng",
 
@@ -811,6 +826,23 @@ export default class TransactionsController {
           ${motelData.name} của chủ trọ ${motelData.owner.lastName} ${motelData.owner.firstName}.`,
 
           user: adminData._id,
+          isRead: false,
+          type: "monthly",
+          url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`,
+          // tag: null,
+          // contentTag: null,
+          tag: "Transactions",
+          contentTag: transactionsData._id,
+        });
+
+        // host
+        await NotificationController.createNotification({
+          title: "Thông báo phê duyệt thanh toán hàng tháng",
+
+          content: `Vui lòng phê duyệt yêu cầu thanh toán hàng tháng cho phòng ${roomData.name} thuộc tòa
+          ${motelData.name}`,
+
+          user: motelData.owner._id,
           isRead: false,
           type: "monthly",
           url: `${process.env.BASE_PATH_CLINET3}manage-monthly-order/manage-accept-order/${motelData._id}`,

@@ -49,15 +49,6 @@ orderRoute
   .route("/listOrderNoPayOfPayDeposit/:id") // + id payDeposit
   .get(TransactionsController.getListOrderNoPayOfPayDeposit)
 
-// orderRoute
-//   .route("/putBankingCashPendingTransactionByMotel/:id")
-//   .put(TransactionsController.putBankingCashPendingTransactionByMotel);
-
-orderRoute
-  .route("/payDeposit/:id")
-  .put(TransactionsController.putPayDeposit);
-
-
 //-------------------------------------------------
 orderRoute.use(AuthMiddleware.isAuthenticated);
 
@@ -95,6 +86,14 @@ orderRoute
 //--------------------------------------------------------------------
 orderRoute.use(AuthMiddleware.isHost);
 
+orderRoute
+  .route("/payDeposit/:id")
+  .put(TransactionsController.putPayDeposit);
+  
+orderRoute
+  .route("/putBankingCashPendingTransactionByMotel/:id")
+  .put(TransactionsController.putBankingCashPendingTransactionByMotel);
+
 //hosts
 // orderRoute
 //   .route("/bankingCashPendingDepositListByMotel/:id")
@@ -112,9 +111,9 @@ orderRoute.use(AuthMiddleware.isHost);
 /* ------------------------------ PRIVATE APIS ------------------------------ */
 orderRoute.use(AuthMiddleware.isMaster);
 
-orderRoute
-  .route("/putBankingCashPendingTransactionByMotel/:id")
-  .put(TransactionsController.putBankingCashPendingTransactionByMotel);
+// orderRoute
+//   .route("/putBankingCashPendingTransactionByMotel/:id")
+//   .put(TransactionsController.putBankingCashPendingTransactionByMotel);
 
 export default orderRoute;
 
