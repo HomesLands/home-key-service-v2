@@ -3,6 +3,7 @@ import * as passport from "passport";
 import * as moment from "moment";
 import * as rn from "random-number";
 import * as bcrypt from "bcryptjs";
+import * as JWT from "jsonwebtoken";
 
 import { helpers, jwtHelper, normalizeError } from "../utils";
 
@@ -314,6 +315,86 @@ export default class AuthController {
 
   /* -------------------------------------------------------------------------- */
 
+  /**
+   * @swagger
+   * definitions:
+   *   checkToken:
+   *     required:
+   *       - userId
+   *       - token
+   *     properties:
+   *       userId:
+   *         type: string
+   *       token:
+   *         type: string
+   */
+
+  /**
+   * @swagger
+   * /v1/auth/checkToken:
+   *   post:
+   *     description: Check Toke Expiration
+   *     tags: [Auth]
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *      - in: body
+   *        name: body
+   *        description: Request body
+   *        schema:
+   *          $ref: '#definitions/checkToken'
+   *          type: object
+   *     responses:
+   *       200:
+   *         description: Success
+   *       400:
+   *         description: Invalid request params
+   *       401:
+   *         description: Unauthorized
+   *       404:
+   *         description: Resource not found
+   */
+  static async checkToken (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const {
+        user: userModel,
+      } = global.mongoModel;
+      const { body: data } = req;
+
+      if(!data) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+      if((!data.userId) || (!data.token)) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+
+      const userData = await userModel.findOne({_id: data.userId}).lean().exec();
+
+      if(!userData) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+
+      if(!userData.token) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+
+      if(userData.token !== data.token) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+
+      if(!checkTokenExpiration(data.token)) {
+        return HttpResponse.returnSuccessResponse(res, false);
+      }
+
+      return HttpResponse.returnSuccessResponse(res, true);
+    } catch (error) {
+      next(error);
+    }
+  }
   /**
    * @swagger
    * /v1/auth/requestResetPassword:
@@ -1075,3 +1156,21 @@ export default class AuthController {
   /*                             END HELPER FUNCTION                            */
   /* -------------------------------------------------------------------------- */
 }
+
+const checkTokenExpiration = (token) => {
+  try {
+    const decoded = JWT.decode(token);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (decoded.exp && decoded.exp > now) {
+        console.log("Token còn hạn");
+        return true;
+    } else {
+        console.log("Token đã hết hạn");
+        return false;
+    }
+  } catch (err) {
+    console.error("Token không hợp lệ", err);
+    return false;
+  }
+};

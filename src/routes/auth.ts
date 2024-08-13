@@ -26,6 +26,8 @@ const authRoute = express.Router();
 // // Google login validate access token
 // authRoute.route('/google/validate').post(AuthController.validateFromGoogleToken);
 
+// CheckLogin
+authRoute.route("/checkToken").post(AuthController.checkToken);
 // Local login
 authRoute.route("/signIn").post(AuthController.signIn);
 // Local sign up
