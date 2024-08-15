@@ -1561,8 +1561,11 @@ export default class RoomController {
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-        res.send(excelBuffer);
-        return;
+        // res.setHeader('X-Error-Message', "Dữ liệu lỗi, vui lòng kiểm tra file lỗi được tải xuống");
+
+        // res.send(excelBuffer);
+        return res.status(400).send(excelBuffer);
+        // return;
       }
 
       //chuyển thành mảng, loại bỏ khoảng trắng đầu và cuối
@@ -2512,9 +2515,12 @@ export default class RoomController {
 
         res.setHeader('Content-Disposition', 'attachment; filename=validation-errors.xlsx');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        // res.setHeader('X-Error-Message', "Dữ liệu lỗi, vui lòng kiểm tra file lỗi được tải xuống");
 
-        res.send(excelBuffer);
-        return;
+        return res.status(400).send(excelBuffer);
+
+        // res.send(excelBuffer);
+        // return;
       }
 
       //chuyển thành mảng, loại bỏ khoảng trắng đầu và cuối
@@ -4677,8 +4683,8 @@ export default class RoomController {
             rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
         } else {
           // Kiểm tra định dạng ngày tháng
-          const date = new Date(data[i][' checkInTime ']);
-          if (isNaN(date.getTime())) {
+          const isValidDate = moment(data[i][' checkInTime '], "DD/MM/YYYY", true).isValid();
+          if (!isValidDate) {
               rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
           }
 
@@ -4938,8 +4944,9 @@ export default class RoomController {
             rowErrors.checkInTime = 'Ngày tháng năm không được để trống';
         } else {
             // Kiểm tra định dạng ngày tháng
-            const date = new Date(data[i][' checkInTime ']);
-            if (isNaN(date.getTime())) {
+            const isValidDate = moment(data[i][' checkInTime '], "DD/MM/YYYY", true).isValid();
+
+            if (!isValidDate) {
                 rowErrors.checkInTime = 'Định dạng ngày tháng không hợp lệ';
             } else {
               const checkInDay = moment(data[i][' checkInTime '], "DD/MM/YYYY").startOf("days");
