@@ -18,6 +18,7 @@ import { HistoryEnergyModel } from "./historyEnergy";
 import { PayDepositListModel } from "./payDepositList";
 import { TotalKwhModel } from "./totalKwh";
 import { RevenueModel } from "./revenue";
+import { RevenueLogModel } from "./revenueLog";
 export default (connection: any) => {
   return {
     room: RoomModel(connection),
@@ -38,5 +39,6 @@ export default (connection: any) => {
     payDepositList: PayDepositListModel(connection),
     totalKwh: TotalKwhModel(connection),
     revenue: RevenueModel(connection),
+    revenueLog: RevenueLogModel(connection),
   };
 };

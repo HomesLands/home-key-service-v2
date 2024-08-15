@@ -23,6 +23,9 @@ export class Bill extends Basic {
   @prop()
   dateBill?: string;
 
+  @prop({default: false})
+  isAddRevenue: boolean;
+
   @prop()
   nameMotel?: string;
 

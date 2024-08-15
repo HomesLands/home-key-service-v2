@@ -1,28 +1,17 @@
-import { NextFunction, Request, response, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import axios, { AxiosResponse } from "axios";
-const fetch = require('node-fetch');
+const mongoose = require('mongoose');
 import HttpResponse from "../../services/response";
 import { default as env } from "../../constants/env";
-import JobController from "./job.controller";
+
 import { ChartCallback, ChartJSNodeCanvas } from "chartjs-node-canvas";
 import { ChartConfiguration } from "chart.js";
 import "jspdf-autotable";
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import * as PdfPrinter from "pdfmake";
 import moment = require("moment");
-import { json, raw } from "body-parser";
-var nodemailer = require("nodemailer");
-import * as lodash from "lodash";
-import { start } from "repl";
-import room from "services/agenda/jobs/room";
-import { FloorModel } from "models/homeKey/floor";
 import { time } from "console";
-import electric from "services/agenda/jobs/electric";
-
-import { helpers } from "../../utils";
-import { UserModel } from "models/user";
-import NotificationController  from "./notification"
-import * as mongoose from "mongoose";
+var nodemailer = require("nodemailer");
 
 const width = 595;
 const height = 400;
@@ -5357,7 +5346,11 @@ export default class EnergyController {
   
   
 
-  static async buildingRevenue(req: Request, res: Response, next: NextFunction): Promise<any> {
+  static async buildingRevenue(
+    req: Request, 
+    res: Response, 
+    next: NextFunction
+  ): Promise<any> {
     const idMotel = req.params.idMotel;
     const year = req.params.year;
 
@@ -5429,19 +5422,19 @@ export default class EnergyController {
           name: motelName,
           total: 0,
           revenue: 0, 
-            electricNumber: 0,
+          electricNumber: 0,
           electricPrice: 0,
           servicePrice: 0,
           waterPrice: 0,
           vehiclePrice: 0,
-            time: `${index + 1}/${year !== "All Years" ? year : ""}` 
+          time: `${index + 1}/${year !== "All Years" ? year : ""}` 
         }));
 
         // Initialize total revenue, electric number, and electric price
         let totalRevenue = 0;
         let totalElectricNumber = 0;
-      let totalElectricPrice = 0;
-      let total = 0;
+        let totalElectricPrice = 0;
+        let total = 0;
 
         // Loop through each bill and find corresponding order
         for (const bill of billData) {
@@ -5454,8 +5447,8 @@ export default class EnergyController {
                 const orderMonth = orderStartTime.getMonth(); // 0-indexed (0 = January, 11 = December)
 
                 if (year === "All Years" || orderYear === parseInt(year, 10)) {
-                    monthlyRevenue[orderMonth].revenue += orderData.roomPrice || 0;
-                    monthlyRevenue[orderMonth].electricNumber += orderData.electricNumber || 0;
+                  monthlyRevenue[orderMonth].revenue += orderData.roomPrice || 0;
+                  monthlyRevenue[orderMonth].electricNumber += orderData.electricNumber || 0;
                   monthlyRevenue[orderMonth].electricPrice += orderData.electricPrice || 0;
                   monthlyRevenue[orderMonth].servicePrice += orderData.servicePrice || 0;
                   monthlyRevenue[orderMonth].waterPrice += orderData.waterPrice || 0;
@@ -5464,7 +5457,7 @@ export default class EnergyController {
 
                     // Update total revenue, electric number, and electric price
                   totalRevenue += orderData.roomPrice || 0;
-                    totalElectricNumber += orderData.electricNumber || 0;
+                  totalElectricNumber += orderData.electricNumber || 0;
                   totalElectricPrice += orderData.electricPrice || 0;
                   total += orderData.amount || 0;
                 }
@@ -5475,24 +5468,36 @@ export default class EnergyController {
         jsonMotel = monthlyRevenue;
 
         // Add total revenue, electric number, and electric price to the response
-        const response = {
-            success: true,
-            data: {
-                monthlyRevenue: jsonMotel,
-              totalRevenue,
-              remainingRevenue,
-                totalElectricNumber,
-              totalElectricPrice,
-              total,
-            }
-        };
+        // const response = {
+        //     success: true,
+        //     data: {
+        //       monthlyRevenue: jsonMotel,
+        //       totalRevenue,
+        //       remainingRevenue,
+        //       totalElectricNumber,
+        //       totalElectricPrice,
+        //       total,
+        //     }
+        // };
 
-        res.status(200).json(response);
+        const data =  {
+          monthlyRevenue: jsonMotel,
+          totalRevenue,
+          remainingRevenue,
+          totalElectricNumber,
+          totalElectricPrice,
+          total,
+        }
+
+        // res.status(200).json(response);
+        return HttpResponse.returnSuccessResponse(res, data);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        // console.error(error);
+        // res.status(500).json({ success: false, message: 'Server Error' });
+      next(error);
     }
-}
+  }
+  
 
 
 
@@ -5528,6 +5533,11 @@ export default class EnergyController {
           motelRoom: motelRoomModel,
           notification: notificationModel,
         } = global.mongoModel;
+
+        const a = "25/02/2026"
+        const isValidDate = moment(a, "DD/MM/YYYY", true).isValid();
+        console.log({isValidDate})
+        console.log(moment().month())
 
         
 
@@ -5578,7 +5588,7 @@ export default class EnergyController {
       // console.log({deposit});
       // console.log({afterCheckInCost});
       // console.log({total});
-      console.log(5/3)
+      // console.log(5/3)
 
       // const a = moment("24/07/2024", "DD/MM/YYYY").startOf("months");
       // const b = moment("24/08/2024", "DD/MM/YYYY").startOf("months");
