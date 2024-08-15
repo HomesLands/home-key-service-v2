@@ -1,7 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import * as mongoose from "mongoose";
 import HttpResponse from "../../services/response";
-import { RevenueModel } from "models/homeKey/revenue";
+import moment = require("moment");
+import * as lodash from "lodash";
+import { JobModel } from "models/homeKey/job";
 
 export default class BillController {
   /* -------------------------------------------------------------------------- */
@@ -606,6 +608,7 @@ export default class BillController {
         let vehiclePrice = 0;
         const timePeriod = `${previousMonthYear}-${previousMonthAdjusted + 1}`;
 
+        // Tạo doanh thu
         for (const motel of motelInfor) {
           let monthlyRevenue = 0;
 
@@ -675,8 +678,6 @@ export default class BillController {
       return next(error);
     }
   }
-
-
 
 }
 

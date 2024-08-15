@@ -17,15 +17,17 @@ adminRoute
   .route("/listMotel/host/:id")
   .get(MotelRoomController.getBuildingListByHost);
 
+adminRoute
+  .route("/homeKey/deleteJobByIdRoom/:id")
+  .delete(JobController.deleteJobByIdRoom);
+
 /* -------------------------------------------------------------------------- */
 /*                            START USER MIDDLEWARE                           */
 /* -------------------------------------------------------------------------- */
 
 /* ---------------------------- CHECK PERMISSION ---------------------------- */
 
-adminRoute
-  .route("/homeKey/deleteJobByIdRoom/:id")
-  .delete(JobController.deleteJobByIdRoom);
+
 
 // adminRoute
 //   .route("/homeKey/deleteJobOnlyInUser/:id")
@@ -40,15 +42,6 @@ adminRoute
 adminRoute
   .route("/postTransactionsDepositPendingBanking/:id")
   .post(TransactionsController.postTransactionsDepositPendingBanking);
-// adminRoute.route('/postTransactionsDepositPendingBanking/:id').post((req, res, next) => {
-//   // Add the job to the queue
-//   transactionQueue.add({ req, res })
-//     .then(() => {
-//       // Send an immediate response to the client
-//       res.status(202).send({ message: 'Your request is being processed' });
-//     })
-//     .catch(next);
-// });
 
 adminRoute.route("/bankname/user").get(TransactionsController.getBankNameUser);
 adminRoute
@@ -139,9 +132,9 @@ adminRoute
 
 adminRoute.route("/host").get(UserController.getHostList);
 
-adminRoute.route("/withdrawRequest/list").get(TransactionsController.getWithdrawRequestListAdmin);
-adminRoute.route("/approveWithdrawRequest/:id").put(TransactionsController.approveWithdrawalRequest);
+adminRoute.route("/withdrawRequest/list/:userId").get(TransactionsController.getWithdrawRequestListAdmin);
 adminRoute.route("/rejectWithdrawRequest/:id").put(TransactionsController.rejectWithdrawalRequest);
+adminRoute.route("/approveWithdrawRequest/:id").put(TransactionsController.approveWithdrawalRequest);
 
 // adminRoute
 //   .route("/listMotel/host")

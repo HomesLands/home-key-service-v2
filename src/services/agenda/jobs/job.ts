@@ -152,9 +152,9 @@ export default (agenda) => {
             description: `Tiền phòng tháng ${ timeCal.month() + 1}/${ timeCal.year()}`, //đang ở đầu tháng để tạo order cho tháng trước
             amount: amount,
             type: "monthly",
-            startTime: startTime.toDate(),
-            endTime: endTime.toDate(),
-            expireTime: expireTime.toDate(),
+            startTime: startTime.clone().toDate(),
+            endTime: endTime.clone().toDate(),
+            expireTime: expireTime.clone().toDate(),
           });
 
           await totalKwhModel.create({
@@ -220,7 +220,7 @@ export default (agenda) => {
           const endTime = moment(checkInTime).endOf("month").endOf("day");
           const end = endTime.format("YYYY-MM-DD");
 
-          const expireTime = endTime.add(15, "days");
+          const expireTime = endTime.clone().add(15, "days");
   
           // let electricNumber = await EnergyController.countElectricV2(job.attrs.data.jobId, start, end);
           const roomId = resData.room;
@@ -268,9 +268,9 @@ export default (agenda) => {
             description: `Tiền phòng tháng ${moment(checkInTime).month() + 1}/${moment(checkInTime).year()}`,
             amount: amount,
             type: "monthly",
-            startTime: startTime.toDate(),
-            endTime: endTime.toDate(),
-            expireTime: expireTime.toDate(),
+            startTime: startTime.clone().toDate(),
+            endTime: endTime.clone().toDate(),
+            expireTime: expireTime.clone().toDate(),
           });
 
           await totalKwhModel.create({
@@ -1362,9 +1362,9 @@ export default (agenda) => {
             const start = startTime.format("YYYY-MM-DD");
             const monInEnd = (moment().month() + 1) < 10 ? ("0" + (moment().month() + 1)) : (moment().month() + 1);
             // const end = moment().year() + "-" + monInEnd + "-" + "04";
-            const endTime = checkOutTime.endOf("day");
+            const endTime = checkOutTime.clone().endOf("day");
             const end = endTime.format("YYYY-MM-DD");
-            const expireTime = endTime.add(15, "days");
+            const expireTime = endTime.clone().add(15, "days");
 
             // let electricNumber = await EnergyController.countElectricV2(jobData._id, start, end);
             const roomId = jobData.room;
@@ -1412,9 +1412,9 @@ export default (agenda) => {
               description: `Tiền phòng tháng ${moment().month() + 1}/${moment().year()}`,
               amount: amount,
               type: "monthly",
-              startTime: startTime.toDate(),
-              endTime: endTime.toDate(),
-              expireTime: expireTime.toDate(),
+              startTime: startTime.clone().toDate(),
+              endTime: endTime.clone().toDate(),
+              expireTime: expireTime.clone().toDate(),
             });
 
             await totalKwhModel.create({
@@ -1577,19 +1577,12 @@ export default (agenda) => {
           const checkInDay = resData.checkInTime;
           const rentalPeriod = resData.rentalPeriod;
           const checkOutDay = moment(checkInDay).add(rentalPeriod, "months").subtract(1, "days"); //  chính xác ngày ở cuối 
-          // console.log("BỘ BỘ: checkOutDay", checkOutDay)
 
           const startTime = checkOutDay.clone().startOf("months").startOf("day");
-          // console.log("BỘ BỘ: startTime", startTime)
-          // console.log("BỘ BỘ: checkOutDay", checkOutDay)
           const start = startTime.format("YYYY-MM-DD");
           const endTime = checkOutDay.clone().endOf("day");
-          // console.log("BỘ BỘ: endTime", endTime)
           const end = endTime.clone().format("YYYY-MM-DD");
-          // console.log("BỘ BỘ: checkOutDay", checkOutDay)
-
           const expireTime = endTime.clone().date(6).endOf('day');
-          // console.log("BỘ BỘ: expireTime", expireTime)
           
           // let electricNumber = await EnergyController.countElectricV2(job.attrs.data.jobId, start, end);
           const roomId = resData.room;
@@ -1647,9 +1640,9 @@ export default (agenda) => {
             description: `Tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()}`,
             amount: amount,
             type: "monthly",
-            startTime: startTime.toDate(),
-            endTime: endTime.toDate(),
-            expireTime: expireTime.toDate(),
+            startTime: startTime.clone().toDate(),
+            endTime: endTime.clone().toDate(),
+            expireTime: expireTime.clone().toDate(),
           });
 
           await totalKwhModel.create({
@@ -2209,7 +2202,7 @@ export default (agenda) => {
             const endTime = moment(`${moment().year()}-${monInEnd}-15`).endOf("day");
             const end = moment().year() + "-" + monInEnd + "-" + "15";
 
-            const expireTime = endTime.add(15, "days");
+            const expireTime = endTime.clone().add(15, "days");
 
             // let electricNumber = await EnergyController.countElectricV2(jobData._id, start, end);
             const roomId = jobData.room;
@@ -2257,9 +2250,9 @@ export default (agenda) => {
               description: `Tiền phòng tháng ${moment().month() + 1}/${moment().year()}`,
               amount: amount,
               type: "monthly",
-              startTime: startTime.toDate(),
-              endTime: endTime.toDate(),
-              expireTime: expireTime.toDate(),
+              startTime: startTime.clone().toDate(),
+              endTime: endTime.clone().toDate(),
+              expireTime: expireTime.clone().toDate(),
             });
 
             await totalKwhModel.create({
@@ -2426,8 +2419,6 @@ export default (agenda) => {
 
           const checkInDay = jobData.checkInTime;
           const rentalPeriod = jobData.rentalPeriod;
-          // const checkOutDay = new Date(checkInDay);
-          // checkOutDay.setMonth(checkOutDay.getMonth() + rentalPeriod);
           const checkOutDay = moment(jobData.checkInTime).add(rentalPeriod, "months").subtract(1, "days"); // chính xác ngày cuối cùng còn được ở
           const timeCal = moment().subtract(1, "months"); // tháng trước
 
@@ -2570,10 +2561,10 @@ export default (agenda) => {
 
             const startTime =  moment().startOf("months").startOf("day");
             const start = startTime.format("YYYY-MM-DD");
-            const endTime = checkOutDay.endOf("day");
+            const endTime = checkOutDay.clone().endOf("day");
             const end = endTime.format("YYYY-MM-DD");
 
-            const expireTime = endTime.add(15, "days");
+            const expireTime = endTime.clone().add(15, "days");
 
             // let electricNumber = await EnergyController.countElectricV2(jobData._id, start, end);
             const roomId = jobData.room;
@@ -2597,7 +2588,7 @@ export default (agenda) => {
             const electricPrice = electricNumber * electricityPricePerKwh;
 
             const dayOfMon = moment().daysInMonth(); // số ngày của tháng
-            const numberDayStay = (Math.abs(checkOutDay.diff(checkOutDay.startOf("month"), "days")) + 1); //cộng 1: tính cả ngày checkIn
+            const numberDayStay = (Math.abs(checkOutDay.clone().diff(checkOutDay.clone().startOf("month"), "days")) + 1); //cộng 1: tính cả ngày checkIn
             const waterPrice = (roomData.waterPrice * roomData.person);
             const servicePrice = roomData.garbagePrice;
             const vehiclePrice = (roomData.wifiPrice * roomData.vihicle);
@@ -2621,9 +2612,9 @@ export default (agenda) => {
               description: `Tiền phòng tháng ${moment().month() + 1}/${moment().year()}`,
               amount: amount,
               type: "monthly",
-              startTime: startTime.toDate(),
-              endTime: endTime.toDate(),
-              expireTime: expireTime.toDate(),
+              startTime: startTime.clone().toDate(),
+              endTime: endTime.clone().toDate(),
+              expireTime: expireTime.clone().toDate(),
             });
 
             await totalKwhModel.create({
@@ -2746,7 +2737,6 @@ export default (agenda) => {
           const checkInDay = jobData.checkInTime;
           const rentalPeriod = jobData.rentalPeriod;
           const checkOutDay = moment(checkInDay).add(rentalPeriod, "months").subtract(1, "days"); //  chính xác ngày ở cuối cùng
-          // const checkOutDay = new Date(checkInDay);
           
           //note: trường hợp không thanh toán, vậy order này không được tạo
           //vậy tổng 2 order sẽ không được thanh toán là tháng trước và những ngày còn lại
@@ -2811,7 +2801,7 @@ export default (agenda) => {
           if(moment(orderData.expireTime).date() !== 15) {
             await orderModel.findOneAndUpdate(
               {_id: orderData._id},
-              {expireTime: checkOutDay.date(15).endOf('day').toDate()}
+              {expireTime: checkOutDay.clone().date(15).endOf('day').toDate()}
             )
           }
 
@@ -2951,7 +2941,7 @@ export default (agenda) => {
             const endTime = moment(`${moment().year()}-${monInEnd}-15`).endOf("day");
             const end = moment().year() + "-" + monInEnd + "-" + "15";
 
-            const expireTime = endTime.add(15, "days");
+            const expireTime = endTime.clone().add(15, "days");
 
             // let electricNumber = await EnergyController.countElectricV2(jobData._id, start, end);
             const roomId = jobData.room;
@@ -2999,9 +2989,9 @@ export default (agenda) => {
               description: `Tiền phòng tháng ${moment().month() + 1}/${moment().year()}`,
               amount: amount,
               type: "monthly",
-              startTime: startTime.toDate(),
-              endTime: endTime.toDate(),
-              expireTime: expireTime.toDate(),
+              startTime: startTime.clone().toDate(),
+              endTime: endTime.clone().toDate(),
+              expireTime: expireTime.clone().toDate(),
             });
 
             await totalKwhModel.create({
@@ -3165,7 +3155,7 @@ export default (agenda) => {
                 //checked
                 console.log("BỊ NHẢY VÀO ĐÂY 2");
                 await global.agendaInstance.agenda.schedule(
-                  checkOutDay.endOf("days").toDate(), //note: 5
+                  checkOutDay.clone().endOf("days").toDate(), //note: 5
                   "CreateOrderForRestDayInMonBeforeExpireContract",
                   { jobId: jobId }
                 );
@@ -3206,13 +3196,9 @@ export default (agenda) => {
           const rentalPeriod = resData.rentalPeriod;
           const checkOutDay = moment(checkInDay).add(rentalPeriod, "months").subtract(1, "days"); //  chính xác ngày ở cuối 
 
-          console.log("HHHHH: checkOutDay", checkOutDay);
-
           const startTime = checkOutDay.clone().startOf("months");
-          console.log("HHHHH: startTime", startTime);
           const start = startTime.clone().format("YYYY-MM-DD");
           const endTime = checkOutDay.clone().endOf("day");
-          console.log("HHHHH: endTime", endTime);
           const end = endTime.clone().format("YYYY-MM-DD");
 
           const expireTime = endTime.clone().add(15, "days");
@@ -3246,10 +3232,7 @@ export default (agenda) => {
           const vehiclePrice = (roomData.wifiPrice * roomData.vihicle);
           const roomPrice = (resData.room.price / dayOfMon) * numberDayStay;
           const wifiPriceN = roomData.wifiPriceN * roomData.person;
-          const amount = roomPrice + vehiclePrice + servicePrice + waterPrice + electricPrice + wifiPriceN;
-
-          console.log("HHHHH: GGG", endTime);
-  
+          const amount = roomPrice + vehiclePrice + servicePrice + waterPrice + electricPrice + wifiPriceN;  
   
           const orderData = await orderModel.create({
             user: resData.user,
@@ -3266,9 +3249,9 @@ export default (agenda) => {
             description: `Tiền phòng tháng ${checkOutDay.month() + 1}/${checkOutDay.year()}`,
             amount: amount,
             type: "monthly",
-            startTime: startTime.toDate(),
-            endTime: endTime.toDate(),
-            expireTime: expireTime.toDate(),
+            startTime: startTime.clone().toDate(),
+            endTime: endTime.clone().toDate(),
+            expireTime: expireTime.clone().toDate(),
           });
 
           await totalKwhModel.create({
@@ -3335,9 +3318,7 @@ export default (agenda) => {
           const rentalPeriod = jobData.rentalPeriod;
 
           const checkOutDay = moment(checkInDay).add(rentalPeriod, "months").subtract(1, "days"); //  chính xác ngày ở cuối cùng
-          console.log("NGÀY HẾT HẠN checkOutDay: ", checkOutDay);
           const checkOutDayPlus3 = checkOutDay.clone().add(3, "days");// số ngày để đóng hóa đơn cuối (3 ngày: ngày hiện tại + 2 ngày)
-          console.log("NGÀY HẾT HẠN: ", checkOutDayPlus3);
 
           if(moment(orderData.expireTime).date() !== checkOutDayPlus3.date()) {
             await orderModel.findOneAndUpdate(
@@ -3703,7 +3684,7 @@ export default (agenda) => {
             console.log("PendingCheckDayExpireContract không gia hạn")
             await global.agendaInstance.agenda.schedule(
               // moment().add("2", 'minutes').toDate(), //note: 5
-              checkOutDay.endOf("days").toDate(),
+              checkOutDay.clone().endOf("days").toDate(),
               "CreateOrderForRestDayInMonBeforeExpireContract",
               { jobId: jobId }
             );
@@ -3740,9 +3721,7 @@ export default (agenda) => {
         const checkInDay = resData.checkInTime;
         const rentalPeriod = resData.rentalPeriod;
         const checkOutDay = moment(checkInDay).add(rentalPeriod, "months").subtract(1, "days"); //  chính xác ngày ở cuối 
-        // console.log("RemindUserRenewContractAndChangeStatusRoomBeforeOneMonth checkOutDay", checkOutDay);
-        // console.log("RemindUserRenewContractAndChangeStatusRoomBeforeOneMonth moment", moment());
-        // console.log("RemindUserRenewContractAndChangeStatusRoomBeforeOneMonth sub", checkOutDay.clone().diff(moment(), "months"));
+        
         if (resData.isActived && !(resData.isDeleted)) {
           if(checkOutDay.clone().diff(moment(), "months") < 1) {
             const userData = await userModel.findOne({
@@ -4971,7 +4950,7 @@ async function createOrderHistory(
     type: "monthly",
     startTime: startTime.clone().toDate(),
     endTime: endTime.clone().toDate(),
-    expireTime: expireTime.toDate(),
+    expireTime: expireTime.clone().toDate(),
   });
 
   await totalKwhModel.create({

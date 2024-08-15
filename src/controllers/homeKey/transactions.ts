@@ -7,16 +7,12 @@ import ImageService from "../../services/image";
 import HttpResponse from "../../services/response";
 import NotificationController from "./notification";
 import RoomController from "./room";
+import RevenueController from "./revenue.controller";
 import e = require("express");
 import sendMail from "../../utils/Mailer/mailer";
 import JobController from "./job.controller";
 import * as rn from "random-number";
 import * as bcrypt from "bcryptjs";
-import { TransactionModel } from "models/transaction";
-import { Bill } from "models/homeKey/bill";
-import { OrderModel } from "models/homeKey/order";
-import { FloorModel } from "models/homeKey/floor";
-import { RoomList } from "twilio/lib/rest/video/v1/room";
 import * as mongoose from "mongoose";
 var nodemailer = require('nodemailer');
 var optionsNumbeer = {
@@ -155,14 +151,20 @@ export default class TransactionsController {
     }
   }
 
-  static async postRequestWithdrawHost(req: Request, res: Response, next: NextFunction): Promise<any> {
+  static async postRequestWithdrawHost(
+    req: Request, 
+    res: Response, 
+    next: NextFunction
+  ): Promise<any> {
     try {
-      // Init models
-      const { transactions: TransactionsModel, user: userModel } = global.mongoModel;
-      const { id } = req.params;
+      const { 
+        transactions: TransactionsModel,
+        user: userModel,
+        revenue: revenueModel,
+      } = global.mongoModel;
       const { body: data } = req;
+      console.log({data})
 
-      // Kiểm tra thông tin người dùng
       const user = await userModel
         .findOne({ _id: req["userId"], isDeleted: false }, { password: 0, token: 0 })
         .populate("avatar identityCards")
@@ -172,24 +174,28 @@ export default class TransactionsController {
         return HttpResponse.returnBadRequestResponse(res, "Tài khoản không tồn tại");
       }
 
-      // Kiểm tra lịch sử giao dịch
+      const revenueData = await revenueModel.findOne({ userId: req['userId'] }).lean().exec();
+      if(!revenueData) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Dữ liệu doanh thu của quý khách chưa tồn tại"
+        );
+      }
+
       const transactionHistory = await TransactionsModel.find({
         user: req["userId"],
         type: "withdraw",
         status: "waiting",
       }).lean().exec();
 
-      // Tính tổng số tiền rút
-      const totalAmount = transactionHistory.reduce((sum, item) => sum + item.amount, 0);
-      if (totalAmount < data.amount) {
-        return HttpResponse.returnBadRequestResponse(res, "Số tiền rút vượt quá số tiền hiện có");
+      const totalAmountWaiting = transactionHistory.reduce((sum, item) => sum + item.amount, 0);
+      if ((totalAmountWaiting + parseInt(data.withdrawAmount)) > revenueData.totalAmount) {
+        return HttpResponse.returnBadRequestResponse(res, "Số tiền rút vượt quá số tiền hiện có, vui lòng kiểm tra lại");
       }
 
-      // Tạo yêu cầu rút tiền
       const transactionData = {
         user: req["userId"],
         keyPayment: data.keyPayment,
-        requestDate: data.requestDate || new Date(),
         motelName: data.motelName,
         description: `${user.lastName} ${user.firstName} yêu cầu rút tiền doanh thu`,
         note: data.withdrawReason,
@@ -201,14 +207,8 @@ export default class TransactionsController {
         accountNumber: data.accountNumber,
         withdrawReason: data.withdrawReason,
       };
-      const transactionsData = await TransactionsModel.create(transactionData);
 
-      // Lấy địa chỉ IP
-      data["ipAddr"] =
-        req.headers["x-forwarded-for"] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.socket.remoteAddress;
+      const transactionsData = await TransactionsModel.create(transactionData);
 
       return HttpResponse.returnSuccessResponse(res, transactionsData);
     } catch (e) {
@@ -223,16 +223,19 @@ export default class TransactionsController {
     next: NextFunction
   ): Promise<any> {
     try {
+      const { userId } = req.params;
+      console.log({userId})
       const { transactions: TransactionsModel, banking: BankingModel, image: imageModel } = global.mongoModel;
 
       const transactionsData = await TransactionsModel.find({
+        user: userId,
         type: "withdraw",
       })
-        .populate({
-          path: 'user',
-          select: 'firstName lastName phoneNumber'  // Chỉ lấy các trường cụ thể từ collection 'user'
-        })
-        .populate('banking')  // Giữ nguyên populate cho 'banking'
+        // .populate({
+        //   path: 'user',
+        //   select: 'firstName lastName phoneNumber'  // Chỉ lấy các trường cụ thể từ collection 'user'
+        // })
+        .populate('banking')
         .lean()
         .exec();
 
@@ -253,20 +256,6 @@ export default class TransactionsController {
               transactionsData[i].file = await helpers.getImageUrl(dataimg);
             }
           }
-
-          // if(transactionsData[i].motel) {
-          //   const motelData = await motelRoomModel.findOne({_id: transactionsData[i].motel}).populate("owner").lean().exec();
-          //   if(motelData) {
-          //     transactionsData[i].motel = motelData;
-          //   }
-          // }
-
-          // if(transactionsData[i].room) {
-          //   const roomData = await roomModel.findOne({_id: transactionsData[i].room}).lean().exec();
-          //   if(roomData) {
-          //     transactionsData[i].room = roomData;
-          //   }
-          // }
         }
       }
 
@@ -1839,7 +1828,7 @@ export default class TransactionsController {
           const bankData = await BankingModel.find({ _id: resDataS.banking }).lean().exec();
           console.log({ bankData });
 
-          await billModel.create({
+          let billMontly = await billModel.create({
             order: orderData._id,
             idBill: getRandomHex2(),
             dateBill: moment().format("DD/MM/YYYY"),
@@ -1884,6 +1873,11 @@ export default class TransactionsController {
 
             type: "monthly",
           });
+
+          await RevenueController.updateRevenue(
+            billMontly._id,
+            resDataS.banking,
+          );
         }
 
         // dặt cọc
@@ -1961,7 +1955,7 @@ export default class TransactionsController {
             const userData = await userModel.findOne({ _id: jobData.user }).lean().exec();
 
             //create bill
-            await billModel.create({
+            let billDeposit = await billModel.create({
               order: orderData._id,
               idBill: getRandomHex2(),
               dateBill: moment().format("DD/MM/YYYY"),
@@ -1995,6 +1989,11 @@ export default class TransactionsController {
 
               type: "deposit",
             });
+
+            await RevenueController.updateRevenue(
+              billDeposit._id,
+              resDataS.banking,
+            );
 
             const activeExpireTime = moment(jobData.checkInTime).add(7, "days").endOf("days").format("DD/MM/YYYY");
 
@@ -2041,7 +2040,6 @@ export default class TransactionsController {
                 });
               }
             }
-
           }
         }
 
@@ -2075,7 +2073,7 @@ export default class TransactionsController {
           const bankData = await BankingModel.find({ _id: resDataS.banking }).lean().exec();
 
           //create bill
-          await billModel.create({
+          let billAfterCheckInCost = await billModel.create({
             order: orderData._id,
             idBill: getRandomHex2(),
             dateBill: moment().format("DD/MM/YYYY"),
@@ -2109,6 +2107,11 @@ export default class TransactionsController {
 
             type: "afterCheckInCost",
           });
+
+          await RevenueController.updateRevenue(
+            billAfterCheckInCost._id,
+            resDataS.banking,
+          );
 
           const jobData = await JobController.getJobNoImg(orderData.job);
 
@@ -2205,6 +2208,110 @@ export default class TransactionsController {
     }
   }
 
+  // static async approveWithdrawalRequest(
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ): Promise<any> {
+  //   try {
+  //     // Init models
+  //     const { transactions: TransactionsModel, revenue: RevenueModel } = global.mongoModel;
+
+  //     const id = req.params.id;
+  //     let { body: data } = req;
+
+  //     let resData = await TransactionsModel.findOne({
+  //       _id: id,
+  //       isDeleted: false,
+  //     }).lean().exec();
+
+  //     if (!resData) {
+  //       return HttpResponse.returnBadRequestResponse(
+  //         res,
+  //         "Giao dịch không tồn tại"
+  //       );
+  //     }
+
+  //     console.log("Check data", resData);
+  //     const userId = resData.user;
+  //     const motelName = resData.motelName;
+
+  //     const userRevenue = await RevenueModel.findOne({
+  //       hostId: userId,
+  //     }).lean().exec();
+
+  //     if (!userRevenue) {
+  //       return HttpResponse.returnBadRequestResponse(
+  //         res,
+  //         "Doanh thu của chủ nhà không tồn tại"
+  //       );
+  //     }
+
+  //     const motelsList = userRevenue.motels || [];
+  //     const matchedMotel = motelsList.find(motel => motel.motelName === motelName);
+
+  //     if (!matchedMotel) {
+  //       return HttpResponse.returnBadRequestResponse(
+  //         res,
+  //         "Tòa nhà không tồn tại"
+  //       );
+  //     }
+
+  //     // Calculate the remaining revenue after withdrawal
+  //     const withdrawalAmount = resData.amount;
+  //     const totalRevenueBeforeWithdrawal = matchedMotel.totalRevenue || 0;
+  //     const remainingRevenue = totalRevenueBeforeWithdrawal - withdrawalAmount;
+
+  //     if (remainingRevenue < 0) {
+  //       return HttpResponse.returnBadRequestResponse(
+  //         res,
+  //         "Số tiền yêu cầu rút vượt quá doanh thu hiện tại"
+  //       );
+  //     }
+
+  //     // Create a new withdrawal record
+  //     const newWithdrawal = {
+  //       withdrawalRequestId: new mongoose.Types.ObjectId(id),
+  //       amount: withdrawalAmount,
+  //       remainingRevenue: remainingRevenue,
+  //       date: new Date()
+  //     };
+
+  //     // Update the motel's revenue and add the new withdrawal
+  //     matchedMotel.totalRevenue = remainingRevenue;
+  //     if (!matchedMotel.withdrawals) {
+  //       matchedMotel.withdrawals = [];
+  //     }
+  //     matchedMotel.withdrawals.push(newWithdrawal);
+
+  //     // Save the updated revenue data
+  //     await RevenueModel.updateOne(
+  //       { hostId: userId, "motels.motelId": matchedMotel.motelId },
+  //       {
+  //         $set: {
+  //           "motels.$.totalRevenue": remainingRevenue,
+  //           "motels.$.withdrawals": matchedMotel.withdrawals
+  //         }
+  //       }
+  //     );
+
+  //     // Update the transaction status
+  //     await TransactionsModel.updateOne(
+  //       { _id: id },
+  //       {
+  //         $set: {
+  //           status: "approved",
+  //           updatedAt: new Date()
+  //         }
+  //       }
+  //     );
+
+  //     return HttpResponse.returnSuccessResponse(res, { ...resData, matchedMotel });
+  //   } catch (e) {
+  //     next(e);
+  //   }
+  // }
+
   static async approveWithdrawalRequest(
     req: Request,
     res: Response,
@@ -2212,29 +2319,34 @@ export default class TransactionsController {
   ): Promise<any> {
     try {
       // Init models
-      const { transactions: TransactionsModel, revenue: RevenueModel } = global.mongoModel;
-
+      const {
+        transactions: TransactionsModel,
+        revenue: revenueModel,
+        revenueLog: revenueLogModel,
+      } = global.mongoModel;
       const id = req.params.id;
-      let { body: data } = req;
 
-      let resData = await TransactionsModel.findOne({
+      let transactionData = await TransactionsModel.findOne({
         _id: id,
         isDeleted: false,
       }).lean().exec();
 
-      if (!resData) {
+      if (!transactionData) {
         return HttpResponse.returnBadRequestResponse(
           res,
           "Giao dịch không tồn tại"
         );
       }
 
-      console.log("Check data", resData);
-      const userId = resData.user;
-      const motelName = resData.motelName;
+      if(transactionData.status !== "waiting") {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Giao dịch đã được phê duyệt"
+        );
+      }
 
-      const userRevenue = await RevenueModel.findOne({
-        hostId: userId,
+      let userRevenue = await revenueModel.findOne({
+        userId: transactionData.user,
       }).lean().exec();
 
       if (!userRevenue) {
@@ -2244,66 +2356,49 @@ export default class TransactionsController {
         );
       }
 
-      const motelsList = userRevenue.motels || [];
-      const matchedMotel = motelsList.find(motel => motel.motelName === motelName);
+      const totalAmountBeforeUpdate = userRevenue.totalAmount;
 
-      if (!matchedMotel) {
+      if(totalAmountBeforeUpdate < transactionData.amount) {
         return HttpResponse.returnBadRequestResponse(
           res,
-          "Tòa nhà không tồn tại"
-        );
+          "Số dư không đủ, vui lòng kiểm tra lại lịch sử giao dịch"
+        )
       }
 
-      // Calculate the remaining revenue after withdrawal
-      const withdrawalAmount = resData.amount;
-      const totalRevenueBeforeWithdrawal = matchedMotel.totalRevenue || 0;
-      const remainingRevenue = totalRevenueBeforeWithdrawal - withdrawalAmount;
-
-      if (remainingRevenue < 0) {
-        return HttpResponse.returnBadRequestResponse(
-          res,
-          "Số tiền yêu cầu rút vượt quá doanh thu hiện tại"
-        );
-      }
-
-      // Create a new withdrawal record
-      const newWithdrawal = {
-        withdrawalRequestId: new mongoose.Types.ObjectId(id),
-        amount: withdrawalAmount,
-        remainingRevenue: remainingRevenue,
-        date: new Date()
-      };
-
-      // Update the motel's revenue and add the new withdrawal
-      matchedMotel.totalRevenue = remainingRevenue;
-      if (!matchedMotel.withdrawals) {
-        matchedMotel.withdrawals = [];
-      }
-      matchedMotel.withdrawals.push(newWithdrawal);
-
-      // Save the updated revenue data
-      await RevenueModel.updateOne(
-        { hostId: userId, "motels.motelId": matchedMotel.motelId },
-        {
-          $set: {
-            "motels.$.totalRevenue": remainingRevenue,
-            "motels.$.withdrawals": matchedMotel.withdrawals
-          }
-        }
-      );
-
-      // Update the transaction status
-      await TransactionsModel.updateOne(
+      transactionData = await TransactionsModel.findOneAndUpdate(
         { _id: id },
-        {
-          $set: {
-            status: "approved",
-            updatedAt: new Date()
-          }
-        }
+        { status: "success" },
+        { new: true }
       );
 
-      return HttpResponse.returnSuccessResponse(res, { ...resData, matchedMotel });
+      userRevenue = await revenueModel.findOneAndUpdate(
+        { userId: transactionData.user },
+        { totalAmount: (totalAmountBeforeUpdate - transactionData.amount) },
+        { new: true }
+      ).lean().exec()
+
+      // log
+      let revenueLogData = await revenueLogModel.create({
+        motelOwner: transactionData.user,
+        motel: null, //note
+        userTransfer: transactionData.user,
+        bankInCome: transactionData.banking,
+        bill: null, //note
+        currentAmount: userRevenue.totalAmount, // afterUpdate
+        amountChange: transactionData.amount,
+        type: "withdraw",
+        roomAmount: 0,
+        depositAmount: 0,
+        electricAmount: 0,
+        waterAmount: 0,
+        serviceAmount: 0,
+        vehicleAmount: 0,
+        wifiAmount: 0,
+        otherAmount: 0,
+        time: moment(transactionData.createdAt).toDate(),
+      });
+
+      return HttpResponse.returnSuccessResponse(res, transactionData);
     } catch (e) {
       next(e);
     }
@@ -2315,11 +2410,8 @@ export default class TransactionsController {
     next: NextFunction
   ): Promise<any> {
     try {
-      // Init models
       const { transactions: TransactionsModel } = global.mongoModel;
-
       const id = req.params.id;
-      let { body: data } = req;
 
       let resData = await TransactionsModel.findOne({
         _id: id,
@@ -2337,8 +2429,7 @@ export default class TransactionsController {
         { _id: id },
         {
           $set: {
-            status: "rejected",
-            updatedAt: new Date()
+            status: "cancel",
           }
         }
       );

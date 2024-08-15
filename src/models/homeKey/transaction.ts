@@ -55,7 +55,7 @@ export class Transactions extends Basic {
   @prop({ default: 0 })
   amount: number;
 
-  @prop()
+  @prop({default: "waiting"})
   status: StatusTransactions;
 
   @prop({ default: "none" })
