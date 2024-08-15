@@ -880,7 +880,7 @@ export default class RoomController {
     );
   }
 
-  static async listRoomAbleRentByIdMotel(
+  static async listRoomAbleRentByIdRoomOfMotel(
     req: Request,
     res: Response,
     next: NextFunction
@@ -893,17 +893,26 @@ export default class RoomController {
         transactions: transactionsModel,
       } = global.mongoModel;
 
-      const idMotel = req.params.id;
-      const motelRoomData = await motelRoomModel.findOne({_id: idMotel}).populate("floors").lean().exec();
+      // const idMotel = req.params.id;
+      const idRoom = req.params.id;
+      const floorDataRes = await floorModel.findOne({rooms: idRoom}).lean().exec();
 
-      if(!motelRoomData) {
+      if(!floorDataRes) {
         return HttpResponse.returnBadRequestResponse(
           res,
-          "Tòa nhà không tồn tại"
-        )
+          "Tầng của phòng không tồn tại"
+        );
       }
 
-      const floorData = motelRoomData.floors;
+      const motelRoomDataRes = await motelRoomModel.findOne({floors: floorDataRes._id}).populate("floors").lean().exec();
+      if(!motelRoomDataRes) {
+        return HttpResponse.returnBadRequestResponse(
+          res,
+          "Tòa nhà của phòng không tồn tại"
+        );
+      }
+
+      const floorData = motelRoomDataRes.floors;
       if(floorData.length < 1) {
         return HttpResponse.returnBadRequestResponse(
           res,
@@ -968,7 +977,7 @@ export default class RoomController {
 
       // Set up the response headers 
       res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); 
-      res.setHeader("Content-Disposition", "attachment; filename=" +`${motelRoomData.name} - Rooms - available.xlsx`);
+      res.setHeader("Content-Disposition", "attachment; filename=" +`${motelRoomDataRes.name} - Rooms - available.xlsx`);
 
       // Write the workbook to the response object 
       workbook.xlsx.write(res).then(() => res.end());
