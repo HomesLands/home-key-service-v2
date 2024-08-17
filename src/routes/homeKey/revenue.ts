@@ -9,6 +9,7 @@ const revenueRoute = express.Router();
 
 revenueRoute.get("/hostRevenue", RevenueController.updateRevenueApi);
 revenueRoute.get("/hostBuildingList/:idMotel/:year", RevenueController.buildingRevenue);
+revenueRoute.get("/historyRevenue/:id", RevenueController.historyRevenueByHost);
 // Login
 revenueRoute.use(AuthMiddleware.isAuthenticated);
 

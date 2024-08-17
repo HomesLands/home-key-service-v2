@@ -149,7 +149,7 @@ export default class RevenueController {
         { isAddRevenue: true },
         { new: true }
       ).lean().exec();
-      
+
       return true;
     } catch (error) {
       return false;
@@ -337,6 +337,54 @@ export default class RevenueController {
         currentRevenueMonthTotal: currentRevenueMonthTotal,
       }
         return HttpResponse.returnSuccessResponse(res, data);
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  static async historyRevenueByHost(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) : Promise<any> {
+    try {
+      const {
+        revenueLog: revenueLogModel,
+      } = global.mongoModel;
+      const idHost = req.params.id;
+      const { type, motel, start, end } = req.query;
+
+      const query: RevenueLogQuery = { motelOwner: idHost };
+      if (type) {
+        query.type = type as string;
+      }
+      
+      if (motel) {
+        query.motel = motel as string;
+      }
+      
+      if (start && end) {
+        const isValidDateEnd = moment(end as string, "YYYY/MM/DD", true).isValid();
+        const isValidDateStart = moment(start as string, "YYYY/MM/DD", true).isValid();
+        if(isValidDateStart && isValidDateEnd) {
+          query.time = { 
+            $gte: moment(start as string).toDate(),
+            $lte: moment(end as string).toDate(),
+          };
+        }
+      }
+
+      const revenueLogData = await revenueLogModel.find(query)
+        .populate({
+          path: 'userTransfer',
+          select: '-password -token -role -wallet -tokenForgotPassword -tokenActive', 
+        })
+        .populate("bill bankInCome")
+        .sort({ time: -1 })
+        .select('')
+        .lean().exec();
+
+      return HttpResponse.returnSuccessResponse(res, revenueLogData);
     } catch (error) {
       next(error);
     }
@@ -547,4 +595,14 @@ export default class RevenueController {
       next(error);
     }
   }
+}
+
+interface RevenueLogQuery {
+  motelOwner: string;
+  type?: string;
+  motel?: string;
+  time?: {
+    $gte: Date;
+    $lte: Date;
+  };
 }

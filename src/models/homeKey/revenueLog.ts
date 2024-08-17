@@ -10,19 +10,19 @@ enum changeType {
     withdraw = "withdraw", // -
 }
 export class RevenueLog extends Basic {
-    @prop({ ref: () => User })
+    @prop({ ref: User })
     motelOwner: Ref<User>; // ===userTransfer with withdraw
 
-    @prop({ ref: () => MotelRoom })
+    @prop({ ref: MotelRoom })
     motel: Ref<MotelRoom>; // null with withdraw
 
-    @prop({ ref: () => User })
+    @prop({ ref: User })
     userTransfer: Ref<User>;
 
-    @prop({ ref: () => Banking })
+    @prop({ ref: Banking })
     bankInCome: Ref<Banking>;
 
-    @prop({ ref: () => Bill })
+    @prop({ ref: Bill })
     bill: Ref<Bill>; // null with withdraw
 
     @prop()
