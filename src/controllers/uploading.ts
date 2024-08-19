@@ -455,11 +455,9 @@ export default class UploadImgController {
         );
       }
 
-      console.log("upp", req.body)
-      console.log("upp", req["files"])
-      console.log("upp", req["files"].file)
-
-      let resDataS = {};
+      let resDataS: dataJob = {
+        images: []
+      };
       // Upload image
       if (req["files"]) {
         let listImgId = [];
@@ -471,6 +469,8 @@ export default class UploadImgController {
             uploadResults.message
           );
         }
+
+        console.log({uploadResults})
 
         for( let i = 0; i < uploadResults.length; i++) {
           listImgId.push(uploadResults[i].imageId);
@@ -484,6 +484,8 @@ export default class UploadImgController {
         )
           .lean()
           .exec();
+
+          resDataS.images = listImgUrl;
       }
 
       return HttpResponse.returnSuccessResponse(res, resDataS);
@@ -551,4 +553,8 @@ export default class UploadImgController {
       next(e);
     }
   }
+}
+
+interface dataJob {
+  images: string[];
 }
